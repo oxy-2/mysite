@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[oxy.]</title>
+  <meta name="description" content="oxy — deltavr, aeronautics, space, low-level computing, pcb design." />
+
+  <!-- Fonts: Space Grotesk & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="loading">
+
+  <!-- full-screen dot matrix canvas (its reactive) -->
+  <canvas id="dot-matrix-canvas" aria-hidden="true"></canvas>
+
+  <!-- welcome -->
+  <div id="loader-overlay" class="loader-overlay">
+    <canvas id="loader-wave-canvas"></canvas>
+    <div class="loader-welcome" id="loader-welcome">welcome.</div>
+  </div>
+
+  <!-- nav bar -->
+  <header class="nav-header">
+    <div class="nav-container">
+      <a href="#" class="nav-brand" id="brand-link">[oxy.]</a>
+
+      <nav class="folder-tabs">
+        <a href="#about" class="tab-item active"><span class="tab-num">01.</span>about</a>
+        <a href="#projects" class="tab-item"><span class="tab-num">02.</span>projects</a>
+        <a href="#hardware" class="tab-item"><span class="tab-num">03.</span>hardware</a>
+        <a href="#contact" class="tab-item"><span class="tab-num">04.</span>contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- hero -->
+    <section class="section hero-section" id="hero">
+      <div class="container hero-grid">
+
+        <div class="hero-left">
+          <!-- my pfp lol -->
+          <div class="pfp-wrapper">
+            <img src="pfp.png" alt="oxy" class="pfp-image" />
+          </div>
+
+          <div class="hero-tagline">
+            <span class="red-dot"></span>
+            <span>military aeronautics / space / hardware / low-level</span>
+          </div>
+
+          <h1 class="hero-name">[oxy.]</h1>
+
+          <p class="hero-bio">
+            soon to be 18 y/o from South Africa currently living in Portugal. Military aeronautics nerd (f45 enjoyer on
+            vtolvr), space enjoyer, low-level computing fanatic, pcb designer, software developer and owner of a
+            (semi-broken) ender 3.
+          </p>
+
+          <div class="hero-links">
+            <a href="#projects" class="btn btn-black">my projects →</a>
+            <a href="#contact" class="btn btn-ghost">contact me</a>
+          </div>
+
+          <div class="interest-list">
+            <span class="tag">5th gen fighters &amp; aviation</span>
+            <span class="tag">space tech </span>
+            <span class="tag">fpga / asic</span>
+            <span class="tag">pcb design (fusion)</span>
+            <span class="tag">vr stuff (deltavr)</span>
+            <span class="tag">software (py/rs/c++/java/etc.)</span>
+            <span class="tag">ml and ai nerd</span>
+          </div>
+        </div>
+
+        <!-- lil heart guy -->
+        <div class="hero-right">
+          <div class="cad-card">
+            <div class="cad-header">
+              <span class="cad-label">i put my heart into this site, heh, get it?</span>
+              <span class="red-indicator">●</span>
+            </div>
+
+            <div class="cad-viewport">
+              <canvas id="cad-3d-canvas" width="420" height="340"></canvas>
+              <div class="cad-hint">[ drag to rotate ]</div>
+            </div>
+
+            <div class="cad-footer">
+              <span>type: wireframe</span>
+              <span>res: not very high</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- expanded about section -->
+    <section class="section about-section" id="about">
+      <div class="container">
+
+        <div class="section-label">
+          <span class="red-dot"></span>
+          <span>01 // about</span>
+        </div>
+
+        <div class="about-grid">
+
+          <div class="about-card">
+            <h2 class="card-title">hiya, i'm Hugo.</h2>
+            <p class="card-text">
+              i go by <strong>oxy</strong> online. i'm a 17-year-old (18 in 2 weeks) living in madeira, portugal
+              (originally from south africa).
+            </p>
+            <p class="card-text">
+              i love military aviation (5th gen especially lol), space systems and stuff, low-level computing, and
+              hardware
+              engineering. i've designed pcbs in fusion for deltavr, sourced components, designed schematics, and done a
+              buncchhh of soldering.
+            </p>
+            <p class="card-text">
+              i worked with my government on a hardware project before and will be working with them again in february
+              2027 i believe. currently, i'm building <strong>deltavr</strong> and fixing my ender 3 (fml).
+            </p>
+
+            <div class="pill-group">
+              <span class="pill">f-35a</span>
+              <span class="pill">space</span>
+              <span class="pill">fpga</span>
+              <span class="pill">pcb design</span>
+              <span class="pill">deltavr</span>
+              <span class="pill">soldering</span>
+              <span class="pill">ender 3</span>
+              <span class="pill">c / c++ / python</span>
+            </div>
+          </div>
+
+          <div class="terminal-card">
+            <div class="term-header">
+              <span class="term-title">oxy@localhost ~ /info.json</span>
+            </div>
+            <div class="term-body" id="term-body">
+              <!-- terminal lines -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- projects section -->
+    <section class="section projects-section" id="projects">
+      <div class="container">
+
+        <div class="section-label">
+          <span class="red-dot"></span>
+          <span>02 // projects</span>
+        </div>
+
+        <div class="projects-grid">
+
+          <article class="project-card featured">
+            <div class="proj-meta">
+              <span class="proj-badge">flagship</span>
+              <span class="proj-date">active</span>
+            </div>
+            <h3 class="proj-title">DeltaVR</h3>
+            <p class="proj-desc">
+              custom vr hardware platform. built custom pcb schematics, sourced components, designed enclosures, and
+              printed parts on my modded ender 3. (check it out <a href="https://github.com/oxy-2/deltavr"
+                style="text-decoration: none; color: #1b1b1b;"><strong>[deltavr.]</strong></a>)
+            </p>
+            <div class="proj-tags">
+              <span>pcb design</span>
+              <span>fusion</span>
+              <span>schematics</span>
+              <span>smd soldering</span>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="proj-meta">
+              <span class="proj-badge">gov collab</span>
+              <span class="proj-date">feb 2027</span>
+            </div>
+            <h3 class="proj-title">government internship</h3>
+            <p class="proj-desc">
+              software &amp; maybe hardware collaboration with government in feb 2027, different from the one i did this
+              year with the <a href="https://www.madeira.gov.pt/dri/"
+                style="text-decoration: none; color: #1b1b1b;"><strong>[dri.]</strong></a>
+            </p>
+            <div class="proj-tags">
+              <span>software</span>
+              <span>hardware</span>
+              <span>probably it support</span>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="proj-meta">
+              <span class="proj-badge">tinkering</span>
+              <span class="proj-date">ongoing</span>
+            </div>
+            <h3 class="proj-title">fpga &amp; shenanigans</h3>
+            <p class="proj-desc">
+              fpga experiments in verilog and chisel, low-level work in building a game emulator with a sipeed tang
+              primer 25k, and some other stuff lol.
+            </p>
+            <div class="proj-tags">
+              <span>vhdl</span>
+              <span>c / c++</span>
+              <span>python</span>
+            </div>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- hardware stuffs -->
+    <section class="section hardware-section" id="hardware">
+      <div class="container">
+
+        <div class="section-label">
+          <span class="red-dot"></span>
+          <span>03 // hardware &amp; tools</span>
+        </div>
+
+        <div class="hardware-grid">
+
+          <div class="hw-box">
+            <h3 class="hw-title">01. electronics &amp; pcb</h3>
+            <ul class="hw-list">
+              <li>- fpga logic &amp; architecture (chisel and verilog)</li>
+              <li>- pcb schematics, design &amp; layout (fusion)</li>
+              <li>- smd &amp; tht soldering (curtosey of my t12 and 858d)</li>
+              <li>- component sourcing (alibaba and aliexpress NEVER amazon)</li>
+            </ul>
+          </div>
+
+          <div class="hw-box">
+            <h3 class="hw-title">02. software &amp; dev</h3>
+            <ul class="hw-list">
+              <li>- python &amp; c/c++</li>
+              <li>- vhdl / verilog hdls</li>
+              <li>- html, css, javascript</li>
+              <li>- fusion cad</li>
+              <li>- orca slicer</li>
+              <li>- github</li>
+              <li>- linux</li>
+            </ul>
+          </div>
+
+          <div class="hw-box">
+            <h3 class="hw-title">03. 3d printing</h3>
+            <ul class="hw-list">
+              <li>- ender 3 ("lightly modified")</li>
+              <li>- i added some mods lol</li>
+              <li>- next upgrade: enclosure and then corexy later</li>
+              <li>- t12 soldering station &amp; 858d hot air station</li>
+              <li>- everything is broken and i love it</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- contacts -->
+    <section class="section contact-section" id="contact">
+      <div class="container">
+
+        <div class="section-label">
+          <span class="red-dot"></span>
+          <span>04 // contact</span>
+        </div>
+
+        <div class="contact-card">
+          <h2 class="contact-title">let's talk.</h2>
+          <p class="contact-desc">
+            wanna larp? let's larp.
+          </p>
+
+          <div class="contact-links">
+            <a href="mailto:Rhime7274@gmail.com" class="c-link">
+              <span class="c-type">email</span>
+              <span class="c-val">[EMAIL_ADDRESS]</span>
+            </a>
+            <a href="https://github.com/oxy-2" target="_blank" rel="noopener" class="c-link">
+              <span class="c-type">github</span>
+              <span class="c-val">oxy-2</span>
+            </a>
+            <a href="https://www.instagram.com/oxyy2_/" target="_blank" rel="noopener" class="c-link">
+              <span class="c-type">instagram</span>
+              <span class="c-val">oxyy2_</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>[oxy.] &copy; 2026</span>
+      <span>its inspired by nothing and their phones, hope u liked my site [insert heart emoji]</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
