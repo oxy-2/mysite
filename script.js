@@ -5,6 +5,24 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+/* themes + user settings state, saved in localStorage like the tabs page */
+const applyTheme = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+};
+
+const state = {
+  theme: localStorage.getItem('oxy_theme') || 'light',
+  bgBaseOpacity: parseFloat(localStorage.getItem('oxy_bg_base')) || 0.22,
+  bgHoverOpacity: parseFloat(localStorage.getItem('oxy_bg_hover')) || 0.85,
+  bgSpacing: parseInt(localStorage.getItem('oxy_bg_spacing'), 10) || 24
+};
+
+applyTheme(state.theme);
+
+/* bridges: other sections replace these with real implementations */
+let updateBgConfig = () => { };
+let toggleSettings = () => { };
+
 /* scroll to top */
 (function initBrandScroll() {
   const brand = $('#brand-link');
@@ -15,113 +33,111 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   });
 })();
 
-/* entrance diagonal loading screen (FIX THIS BULLSHIT) */
-(function initDiagonalWaveLoader() {
+/* entrance diagonal loading screen (same as oxygenated cuz its way cleaner, wave only sweeps one way then fades) */
+(function initLoader() {
   const overlay = $('#loader-overlay');
   const canvas = $('#loader-wave-canvas');
-  const welcome = $('#loader-welcome');
   if (!overlay || !canvas) return;
 
   const ctx = canvas.getContext('2d');
-  let width = (canvas.width = window.innerWidth);
-  let height = (canvas.height = window.innerHeight);
-
   const SPACING = 20;
-  const cols = Math.ceil(width / SPACING) + 1;
-  const rows = Math.ceil(height / SPACING) + 1;
-  const maxDiag = cols + rows;
 
+  let width = 0, height = 0, cols = 0, rows = 0, maxDiag = 0;
   let waveFront = 0;
-  let retracting = false;
   let isLoaded = false;
+  let fading = false;
 
+  // measures on every window and resize so the grid always fills the screen
+  function size() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    cols = Math.ceil(width / SPACING) + 1;
+    rows = Math.ceil(height / SPACING) + 1;
+    maxDiag = cols + rows;
+  }
+  size();
+
+  // page counts as loaded once assets are in (or shortly after)
   window.addEventListener('load', () => { isLoaded = true; });
+  setTimeout(() => { isLoaded = true; }, 600);
 
-  function renderWave() {
+  // canvas cant use css vars so it asks the html tag which theme is active each frame
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+
+  function render() {
+    // stop drawing once the loader is fully hidden
+    if (overlay.classList.contains('hidden')) return;
+
     ctx.clearRect(0, 0, width, height);
 
-    if (!retracting) {
-      waveFront += 0.8;
-      if (waveFront > maxDiag) {
+    // wave only moves one way, then fades grid + welcome dot together
+    if (!fading) {
+      waveFront += 1.6;
+      if (waveFront >= maxDiag) {
         waveFront = maxDiag;
         if (isLoaded) {
-          retracting = true;
-        } else {
-          waveFront = 0;
+          fading = true;
+          overlay.classList.add('fading');
+          setTimeout(() => {
+            overlay.classList.add('hidden');
+            document.body.classList.remove('loading'); // reveal the page
+          }, 700); // matches the css fade duration
         }
-      }
-    } else {
-      // roll back / peel animation towards top-left
-      waveFront -= 1.1;
-
-      // fade welcome text as wave peels back
-      const fadeProgress = waveFront / maxDiag;
-      if (welcome) {
-        welcome.style.opacity = Math.max(0, fadeProgress).toFixed(2);
-      }
-
-      if (waveFront <= 0) {
-        overlay.classList.add('hidden');
-        document.body.classList.remove('loading');
-        return;
       }
     }
 
-    // draw diagonal dot matrix wave curtain
+    // draw tailing dots, deeper dots grow larger and more opaque for that sweep feel
+    const rgb = isDark() ? '255, 255, 255' : '17, 17, 17';
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const diagPos = c + r;
-        const distToFront = waveFront - diagPos;
-
+        const distToFront = waveFront - (c + r);
         if (distToFront >= 0) {
           const radius = Math.min(6, Math.max(1, distToFront * 0.8));
-          const opacity = Math.min(0.95, Math.max(0.1, 1 - distToFront * 0.05));
+          const opacity = Math.min(0.95, Math.max(0.15, 1 - distToFront * 0.05));
           ctx.beginPath();
           ctx.arc(c * SPACING, r * SPACING, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(17, 17, 17, ${opacity.toFixed(2)})`;
+          ctx.fillStyle = `rgba(${rgb}, ${opacity.toFixed(2)})`;
           ctx.fill();
         }
       }
     }
 
-    requestAnimationFrame(renderWave);
+    requestAnimationFrame(render);
   }
 
-  window.addEventListener('resize', () => {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-  });
-
-  renderWave();
+  window.addEventListener('resize', size);
+  render();
 })();
 
-/* fullscreen dot matrix */
+/* fullscreen dot matrix, reads settings for spacing + contrast and switches colors with the theme */
 (function initDotMatrixBg() {
   const canvas = $('#dot-matrix-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const SPACING = 24;
-  const BASE_RADIUS = 1.1;
-  const MAX_RADIUS = 4.2;
-  const INFLUENCE_DIST = 140;
+  const BASE_RADIUS = 1.3;
+  const MAX_RADIUS = 5.0;
+  const INFLUENCE_DIST = 160;
 
   let width = 0, height = 0, cols = 0, rows = 0;
   let dots = [];
   const mouse = { x: -1000, y: -1000 };
 
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // build the flat dot list once, redraw is what animates, each dot has a random phase so the pulse feels alive
   function resize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
-    cols = Math.ceil(width / SPACING) + 1;
-    rows = Math.ceil(height / SPACING) + 1;
+    cols = Math.ceil(width / state.bgSpacing) + 1;
+    rows = Math.ceil(height / state.bgSpacing) + 1;
     dots = [];
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         dots.push({
-          x: c * SPACING,
-          y: r * SPACING,
+          x: c * state.bgSpacing,
+          y: r * state.bgSpacing,
           radius: BASE_RADIUS,
           phase: Math.random() * Math.PI * 2
         });
@@ -140,6 +156,8 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
     ctx.clearRect(0, 0, width, height);
     time += 0.02;
 
+    const rgb = isDark() ? '255, 255, 255' : '17, 17, 17';
+
     for (let i = 0; i < dots.length; i++) {
       const dot = dots[i];
       const dx = mouse.x - dot.x;
@@ -147,53 +165,108 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
       const dist = Math.hypot(dx, dy);
 
       let targetR = BASE_RADIUS;
-      if (dist < INFLUENCE_DIST) {
-        const factor = 1 - dist / INFLUENCE_DIST;
-        targetR = BASE_RADIUS + (MAX_RADIUS - BASE_RADIUS) * factor * factor;
-      }
-      targetR += Math.sin(dot.phase + time) * 0.25;
+      let proximityFactor = 0;
 
-      dot.radius += (targetR - dot.radius) * 0.12;
+      if (dist < INFLUENCE_DIST) {
+        // proximityFactor goes 1 (on your cursor) down to 0 (at the edge), squaring it curves the falloff
+        proximityFactor = 1 - dist / INFLUENCE_DIST;
+        targetR = BASE_RADIUS + (MAX_RADIUS - BASE_RADIUS) * proximityFactor * proximityFactor;
+      }
+      // soft ambient pulse so the grid stays alive
+      targetR += Math.sin(dot.phase + time) * 0.2;
+      dot.radius += (targetR - dot.radius) * 0.15;
+
+      // opacity blends between the base setting and the hover setting
+      const opacity = state.bgBaseOpacity + (state.bgHoverOpacity - state.bgBaseOpacity) * (proximityFactor * proximityFactor);
 
       ctx.beginPath();
-      ctx.arc(dot.x, dot.y, Math.max(0.5, dot.radius), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(17, 17, 17, ${(0.12 + (dot.radius / MAX_RADIUS) * 0.4).toFixed(3)})`;
+      ctx.arc(dot.x, dot.y, Math.max(0.6, dot.radius), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rgb}, ${opacity.toFixed(3)})`;
       ctx.fill();
     }
 
     requestAnimationFrame(render);
   }
 
+  // gets called for contrast and spacing changes in the settings menu
+  updateBgConfig = () => resize();
+
   window.addEventListener('resize', resize);
   resize();
   render();
 })();
 
-/* 3d draggable dot matrix heart <3 */
-(function init3DHeartCAD() {
+/* 3d draggable dot matrix, now with all the shapes: heart, icosahedron, cube */
+(function init3DShapes() {
   const canvas = $('#cad-3d-canvas');
+  const coordsEl = $('#cad-coords');
+  const modeBtn = $('#cad-mode-btn');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
 
-  const vertices = [];
-  const thicknesses = [-12, 0, 12];
+  const modes = ['heart', 'icosahedron', 'cube'];
+  let modeIndex = 0;
+  let vertices = [];
 
-  thicknesses.forEach(zOffset => {
-    for (let angle = 0; angle < Math.PI * 2; angle += 0.12) {
-      const x = 16 * Math.pow(Math.sin(angle), 3);
-      const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
-      for (let ring = 0.9; ring <= 1.1; ring += 0.1) {
-        vertices.push({
-          x: x * 4.5 * ring,
-          y: y * 4.5 * ring,
-          z: zOffset
-        });
+  /* the shape factories, heart is the classic one, the rest borrowed from oxygenated tabs */
+  function generateGeometry() {
+    vertices = [];
+    const mode = modes[modeIndex];
+
+    if (mode === 'heart') {
+      const thicknesses = [-12, 0, 12];
+      thicknesses.forEach(zOffset => {
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.12) {
+          const x = 16 * Math.pow(Math.sin(angle), 3);
+          const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+          for (let ring = 0.9; ring <= 1.1; ring += 0.1) {
+            vertices.push({ x: x * 4.5 * ring, y: y * 4.5 * ring, z: zOffset });
+          }
+        }
+      });
+    } else if (mode === 'icosahedron') {
+      const phi = (1 + Math.sqrt(5)) / 2;
+      const raw = [
+        [-1, phi, 0], [1, phi, 0], [-1, -phi, 0], [1, -phi, 0],
+        [0, -1, phi], [0, 1, phi], [0, -1, -phi], [0, 1, -phi],
+        [phi, 0, -1], [phi, 0, 1], [-phi, 0, -1], [-phi, 0, 1]
+      ];
+      raw.forEach(v => {
+        vertices.push({ x: v[0] * 32, y: v[1] * 32, z: v[2] * 32 });
+      });
+      // dots along the edges for that wireframe feel, two corners are neighbors if their 3d distance is small
+      for (let i = 0; i < raw.length; i++) {
+        for (let j = i + 1; j < raw.length; j++) {
+          const dist = Math.hypot(raw[i][0] - raw[j][0], raw[i][1] - raw[j][1], raw[i][2] - raw[j][2]);
+          if (dist < 2.3) {
+            for (let t = 0.2; t < 1; t += 0.2) {
+              vertices.push({
+                x: (raw[i][0] + (raw[j][0] - raw[i][0]) * t) * 32,
+                y: (raw[i][1] + (raw[j][1] - raw[i][1]) * t) * 32,
+                z: (raw[i][2] + (raw[j][2] - raw[i][2]) * t) * 32
+              });
+            }
+          }
+        }
+      }
+    } else { // cube, only surface points cuz the inside stays empty
+      for (let x = -1; x <= 1; x += 0.5) {
+        for (let y = -1; y <= 1; y += 0.5) {
+          for (let z = -1; z <= 1; z += 0.5) {
+            if (Math.abs(x) === 1 || Math.abs(y) === 1 || Math.abs(z) === 1) {
+              vertices.push({ x: x * 40, y: y * 40, z: z * 40 });
+            }
+          }
+        }
       }
     }
-  });
+  }
+
+  generateGeometry();
 
   let rotX = 0.2;
   let rotY = 0.4;
@@ -225,6 +298,15 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
   window.addEventListener('mouseup', () => { isDragging = false; });
 
+  // shape cycling: heart → icosahedron → cube → loop
+  if (modeBtn) {
+    modeBtn.addEventListener('click', () => {
+      modeIndex = (modeIndex + 1) % modes.length;
+      modeBtn.textContent = modes[modeIndex];
+      generateGeometry();
+    });
+  }
+
   function render3D() {
     if (!isDragging) {
       targetRotY += 0.006;
@@ -232,6 +314,10 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
     rotX += (targetRotX - rotX) * 0.1;
     rotY += (targetRotY - rotY) * 0.1;
+
+    if (coordsEl) {
+      coordsEl.innerHTML = `<span class="red-indicator">●</span> x ${rotX.toFixed(2)} y ${rotY.toFixed(2)}`;
+    }
 
     ctx.clearRect(0, 0, w, h);
 
@@ -241,6 +327,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
     const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
     const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+    const rgb = isDark() ? '255, 255, 255' : '17, 17, 17';
 
     for (let i = 0; i < vertices.length; i++) {
       const v = vertices[i];
@@ -260,7 +347,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(17, 17, 17, ${alpha.toFixed(2)})`;
+      ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(2)})`;
       ctx.fill();
     }
 
@@ -311,4 +398,102 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   }, { threshold: 0.3 });
 
   obs.observe(body);
+})();
+
+/* settings drawer, slides in from the right, no clock stuff cuz there is no clock on this site */
+(function initSettings() {
+  const toggleBtn = $('#settings-toggle');
+  const drawer = $('#settings-drawer');
+  const bg = $('#drawer-bg');
+  const closeBtn = $('#close-drawer');
+  const contrastOpts = $$('#contrast-opts .opt');
+  const spacingOpts = $$('#spacing-opts .opt');
+  const themeOpts = $$('#theme-opts .opt');
+
+  // reflect whatever was saved in localStorage so the picked buttons look chosen
+  contrastOpts.forEach(o => {
+    o.classList.toggle('active', parseFloat(o.dataset.base) === state.bgBaseOpacity);
+  });
+  spacingOpts.forEach(o => {
+    o.classList.toggle('active', parseInt(o.dataset.spacing, 10) === state.bgSpacing);
+  });
+  themeOpts.forEach(o => {
+    o.classList.toggle('active', o.dataset.themeOpt === state.theme);
+  });
+
+  // open / close
+  toggleSettings = () => {
+    if (!drawer) return;
+    const open = drawer.classList.toggle('open');
+    if (bg) bg.classList.toggle('open', open);
+  };
+
+  if (toggleBtn) toggleBtn.addEventListener('click', toggleSettings);
+  if (closeBtn) closeBtn.addEventListener('click', toggleSettings);
+  if (bg) {
+    bg.addEventListener('click', () => {
+      if (drawer && drawer.classList.contains('open')) toggleSettings();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('open')) toggleSettings();
+    if (e.altKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      toggleSettings();
+    }
+  });
+
+  // dot contrast
+  contrastOpts.forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.bgBaseOpacity = parseFloat(btn.dataset.base);
+      state.bgHoverOpacity = parseFloat(btn.dataset.hover);
+      localStorage.setItem('oxy_bg_base', state.bgBaseOpacity);
+      localStorage.setItem('oxy_bg_hover', state.bgHoverOpacity);
+      contrastOpts.forEach(o => o.classList.toggle('active', o === btn));
+      updateBgConfig();
+    });
+  });
+
+  // dot spacing
+  spacingOpts.forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.bgSpacing = parseInt(btn.dataset.spacing, 10);
+      localStorage.setItem('oxy_bg_spacing', state.bgSpacing);
+      spacingOpts.forEach(o => o.classList.toggle('active', o === btn));
+      updateBgConfig();
+    });
+  });
+
+  // theme light / dark
+  themeOpts.forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.theme = btn.dataset.themeOpt;
+      localStorage.setItem('oxy_theme', state.theme);
+      applyTheme(state.theme);
+      themeOpts.forEach(o => o.classList.toggle('active', o === btn));
+    });
+  });
+})();
+
+/* my pfp but BIGGER, click the lil photo and it becomes a big square with the full pic */
+(function initPfpModal() {
+  const pfpWrapper = $('.pfp-wrapper');
+  const modal = $('#pfp-modal');
+  const closeBtn = $('#close-pfp-modal');
+  if (!pfpWrapper || !modal) return;
+
+  const open = () => modal.classList.add('open');
+  const close = () => modal.classList.remove('open');
+
+  pfpWrapper.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+
+  // clicking the dark background (not the card) closes it too
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) close();
+  });
 })();

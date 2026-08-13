@@ -15,6 +15,11 @@
     href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <!-- apply saved theme before first paint -->
+  <script>
+    if (localStorage.getItem('oxy_theme') === 'dark')
+      document.documentElement.setAttribute('data-theme', 'dark');
+  </script>
 </head>
 
 <body class="loading">
@@ -25,7 +30,9 @@
   <!-- welcome -->
   <div id="loader-overlay" class="loader-overlay">
     <canvas id="loader-wave-canvas"></canvas>
-    <div class="loader-welcome" id="loader-welcome">welcome.</div>
+    <div class="loader-center">
+      <span class="loader-text">welcome.</span>
+    </div>
   </div>
 
   <!-- nav bar -->
@@ -33,12 +40,23 @@
     <div class="nav-container">
       <a href="#" class="nav-brand" id="brand-link">[oxy.]</a>
 
-      <nav class="folder-tabs">
-        <a href="#about" class="tab-item active"><span class="tab-num">01.</span>about</a>
-        <a href="#projects" class="tab-item"><span class="tab-num">02.</span>projects</a>
-        <a href="#hardware" class="tab-item"><span class="tab-num">03.</span>hardware</a>
-        <a href="#contact" class="tab-item"><span class="tab-num">04.</span>contact</a>
-      </nav>
+      <div class="nav-right">
+        <nav class="folder-tabs">
+          <a href="#about" class="tab-item active"><span class="tab-num">01.</span>about</a>
+          <a href="#projects" class="tab-item"><span class="tab-num">02.</span>projects</a>
+          <a href="#hardware" class="tab-item"><span class="tab-num">03.</span>hardware</a>
+          <a href="#contact" class="tab-item"><span class="tab-num">04.</span>contact</a>
+        </nav>
+
+        <button class="settings-btn" id="settings-toggle" aria-label="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.38.67 1.08 1.1 1.85 1.15H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -87,7 +105,7 @@
           <div class="cad-card">
             <div class="cad-header">
               <span class="cad-label">i put my heart into this site, heh, get it?</span>
-              <span class="red-indicator">●</span>
+              <span class="cad-coords" id="cad-coords"><span class="red-indicator">●</span></span>
             </div>
 
             <div class="cad-viewport">
@@ -96,7 +114,7 @@
             </div>
 
             <div class="cad-footer">
-              <span>type: wireframe</span>
+              <button class="btn-text" id="cad-mode-btn">heart</button>
               <span>res: not very high</span>
             </div>
           </div>
@@ -179,7 +197,7 @@
             <p class="proj-desc">
               custom vr hardware platform. built custom pcb schematics, sourced components, designed enclosures, and
               printed parts on my modded ender 3. (check it out <a href="https://github.com/oxy-2/deltavr"
-                style="text-decoration: none; color: #1b1b1b;"><strong>[deltavr.]</strong></a>)
+                class="proj-link"><strong>[deltavr.]</strong></a>)
             </p>
             <div class="proj-tags">
               <span>pcb design</span>
@@ -197,8 +215,7 @@
             <h3 class="proj-title">government internship</h3>
             <p class="proj-desc">
               software &amp; maybe hardware collaboration with government in feb 2027, different from the one i did this
-              year with the <a href="https://www.madeira.gov.pt/dri/"
-                style="text-decoration: none; color: #1b1b1b;"><strong>[dri.]</strong></a>
+              year with the <a href="https://www.madeira.gov.pt/dri/" class="proj-link"><strong>[dri.]</strong></a>
             </p>
             <div class="proj-tags">
               <span>software</span>
@@ -320,6 +337,56 @@
       <span>its inspired by nothing and their phones, hope u liked my site [insert heart emoji]</span>
     </div>
   </footer>
+
+  <!-- pfp, click the lil photo to open it -->
+  <div class="modal-bg" id="pfp-modal">
+    <div class="modal pfp-card">
+      <div class="modal-head">
+        <span>[oxy.] hey that's me.</span>
+        <button class="modal-x" id="close-pfp-modal">&times;</button>
+      </div>
+      <div class="pfp-expanded-wrap">
+        <img src="pfp.png" alt="oxy" class="pfp-expanded" />
+      </div>
+    </div>
+  </div>
+
+  <!-- settings drawer that slides out from the right -->
+  <div class="drawer-bg" id="drawer-bg"></div>
+  <aside class="drawer" id="settings-drawer">
+    <div class="drawer-head">
+      <span>settings (make stuff different)</span>
+      <button class="modal-x" id="close-drawer">&times;</button>
+    </div>
+
+    <div class="setting-group">
+      <label>dot contrast</label>
+      <div class="setting-opts" id="contrast-opts">
+        <button class="opt" data-base="0.12" data-hover="0.55">low</button>
+        <button class="opt" data-base="0.16" data-hover="0.65">normal</button>
+        <button class="opt active" data-base="0.22" data-hover="0.85">high</button>
+        <button class="opt" data-base="0.35" data-hover="0.95">higher</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>dot spacing</label>
+      <div class="setting-opts" id="spacing-opts">
+        <button class="opt" data-spacing="10">alot</button>
+        <button class="opt" data-spacing="18">dense</button>
+        <button class="opt active" data-spacing="24">balanced</button>
+        <button class="opt" data-spacing="32">sparse</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>theme (no dark mode = no night flying, so wake up)</label>
+      <div class="setting-opts" id="theme-opts">
+        <button class="opt" data-theme-opt="light">light</button>
+        <button class="opt" data-theme-opt="dark">dark</button>
+      </div>
+    </div>
+  </aside>
 
   <script src="script.js"></script>
 </body>
