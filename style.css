@@ -130,13 +130,16 @@ body.loading {
   }
 }
 
-/* folder-tab style navigation */
+/* folder-tab style navigation (two tiers: big page tabs + small section tabs) */
+:root {
+  --subnav-h: 34px;
+}
+
 .nav-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--nav-h);
   z-index: 100;
   background: var(--nav-bg);
   backdrop-filter: blur(12px);
@@ -147,7 +150,7 @@ body.loading {
   max-width: var(--container);
   margin: 0 auto;
   padding: 0 24px;
-  height: 100%;
+  height: var(--nav-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -229,11 +232,66 @@ body.loading {
   font-size: 10px;
 }
 
+/* small tab strip under the big tabs - jumps inside the long home page,
+   swaps panels on deltavr */
+.subtabs-bar {
+  border-top: 1px solid var(--border);
+}
+
+.subtabs-row {
+  display: flex;
+  align-items: center;
+}
+
+.subtabs-group {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.subtabs-group.hidden {
+  display: none;
+}
+
+.subtabs-group::-webkit-scrollbar {
+  display: none;
+}
+
+.sub-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.sub-tab:hover {
+  color: var(--text);
+}
+
+.sub-tab.active {
+  color: var(--red-accent);
+}
+
+/* anchored sections on the long home page stop below the two-tier header */
+#section-about,
+#section-projects,
+#section-hardware,
+#section-contact {
+  scroll-margin-top: calc(var(--nav-h) + var(--subnav-h) + 12px);
+}
+
 /* layout containers */
 main {
   position: relative;
   z-index: 1;
-  padding-top: var(--nav-h);
+  padding-top: calc(var(--nav-h) + var(--subnav-h));
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s;
@@ -914,12 +972,368 @@ body:not(.loading) main {
     grid-template-columns: 1fr;
   }
 
+  /* folder tabs become a scrollable strip on mobile instead of vanishing */
+  .nav-container {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 12px;
+    height: auto;
+  }
+
+  :root {
+    --nav-h: 92px;
+  }
+
   .folder-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .folder-tabs::-webkit-scrollbar {
     display: none;
+  }
+
+  .tab-item {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .drawer {
     width: 280px;
     right: -300px;
   }
+}
+
+/* ============ panel router ============ */
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* ============ deltavr overview ============ */
+.stat-strip-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-strip-col .stat-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease;
+}
+
+.stat-strip-col .stat-box:hover {
+  border-color: var(--border-dark);
+}
+
+.stat-num-sm {
+  font-size: 15px !important;
+}
+
+.featured-border {
+  border-color: var(--border-dark);
+  background: var(--bg-subtle);
+}
+
+.board-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+/* ============ pcb viewer ============ */
+.viewer-controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.btn-text.active {
+  color: var(--red-accent);
+}
+
+/* ============ schematic viewer ============ */
+.sch-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+
+.sch-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sch-stage {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.sch-stage:active {
+  cursor: grabbing;
+}
+
+.sch-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  background: #ffffff;
+}
+
+.sch-canvas svg {
+  display: block;
+}
+
+.sch-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sch-hint {
+  margin-top: 10px;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* schematic svg colors follow the theme */
+[data-theme="dark"] .sch-canvas svg {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+/* ============ gallery ============ */
+.gallery-grid {
+  column-count: 3;
+  column-gap: 16px;
+}
+
+.gallery-item {
+  break-inside: avoid;
+  margin-bottom: 16px;
+  cursor: zoom-in;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  transition: border-color 0.2s ease;
+}
+
+.gallery-item:hover {
+  border-color: var(--border-dark);
+}
+
+.gallery-item img {
+  width: 100%;
+  display: block;
+}
+
+.gallery-caption {
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .gallery-grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .gallery-grid {
+    column-count: 1;
+  }
+}
+
+.modal-wide {
+  max-width: 900px;
+}
+
+.img-lightbox-wrap {
+  max-height: 76vh;
+  overflow: auto;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+
+.img-lightbox-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ============ stats dashboard (hackatime-ish) ============ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 20px;
+  grid-column: span 12;
+}
+
+.dash-span-4 { grid-column: span 4; }
+.dash-span-8 { grid-column: span 8; }
+.dash-span-12 { grid-column: span 12; }
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  margin-bottom: 14px;
+}
+
+.badge {
+  padding: 2px 6px;
+  background: var(--text);
+  color: var(--bg);
+  letter-spacing: 0.04em;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.pie-legend {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.pie-legend-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legend-row-line {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.legend-row-line.pie-legend-inline {
+  width: auto;
+  gap: 6px;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+
+.ai-swatch {
+  background: var(--red-accent);
+}
+
+.gauge-caption {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.ai-bar-wrap {
+  height: 26px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+}
+
+.ai-bar-human {
+  height: 100%;
+  background: var(--text);
+}
+
+.ai-bar-ai {
+  height: 100%;
+  background: var(--red-accent);
+}
+
+.ai-bar-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.cat-row,
+.commit-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+
+.cat-row:last-child,
+.commit-row:last-child {
+  border-bottom: none;
+}
+
+.commit-row a {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-row a:hover {
+  color: var(--text);
+}
+
+.commit-sha {
+  color: var(--red-accent);
+  font-weight: 700;
+}
+
+.heatmap-wrap {
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  padding: 8px;
 }

@@ -23,13 +23,14 @@ applyTheme(state.theme);
 let updateBgConfig = () => { };
 let toggleSettings = () => { };
 
-/* scroll to top */
+/* scroll to top when already home, otherwise the hash router handles it */
 (function initBrandScroll() {
   const brand = $('#brand-link');
   if (!brand) return;
-  brand.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  brand.addEventListener('click', () => {
+    if ((location.hash || '#about') === '#about') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   });
 })();
 
@@ -472,6 +473,8 @@ let toggleSettings = () => { };
       localStorage.setItem('oxy_theme', state.theme);
       applyTheme(state.theme);
       themeOpts.forEach(o => o.classList.toggle('active', o === btn));
+      // canvas charts can't read css vars, let them know to repaint in the new colors
+      document.dispatchEvent(new CustomEvent('themechange'));
     });
   });
 })();
@@ -495,5 +498,134 @@ let toggleSettings = () => { };
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) close();
+  });
+})();
+
+/* two-tier hash router: big tabs switch page (about = one long scrolling page,
+   deltavr = separate panels). small tabs jump to sections / switch deltavr panels.
+   fires panel:shown so lazy things (schematics, charts) boot when visible */
+const BIG_TABS = {
+  about: ['about', 'projects', 'hardware', 'contact'],
+  deltavr: ['deltavr', 'schematic', 'gallery', 'stats']
+};
+const ALL_IDS = [...BIG_TABS.about, ...BIG_TABS.deltavr];
+let firstRoute = true;
+let spyPauseUntil = 0;
+
+function route() {
+  let id = (location.hash || '#about').slice(1);
+  if (!ALL_IDS.includes(id)) id = 'about';
+  const big = id === 'deltavr' || BIG_TABS.deltavr.includes(id) ? 'deltavr' : 'about';
+
+  // home is one long page (panel-about); each deltavr sub-tab is its own panel
+  const shownPanel = big === 'about' ? 'about' : id;
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + shownPanel));
+  $$('[data-big]').forEach(t => t.classList.toggle('active', t.dataset.big === big));
+  $$('.subtabs-group').forEach(g => g.classList.toggle('hidden', g.dataset.for !== big));
+  $$('.sub-tab').forEach(t => t.classList.toggle('active', t.getAttribute('href') === '#' + id));
+
+  const navH = $('.nav-header')?.offsetHeight || 58;
+
+  if (big === 'deltavr') {
+    window.scrollTo(0, 0);
+    document.dispatchEvent(new CustomEvent('panel:shown', { detail: { id } }));
+  } else if (id === 'about' && !firstRoute) {
+    // plain #about click just goes to the top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  if (big === 'about') {
+    spyPauseUntil = Date.now() + 900;
+    if (id !== 'about') {
+      const sec = document.getElementById('section-' + id);
+      if (sec) {
+        requestAnimationFrame(() => {
+          const y = sec.getBoundingClientRect().top + window.scrollY - navH - 10;
+          window.scrollTo({ top: Math.max(y, 0), behavior: firstRoute ? 'auto' : 'smooth' });
+        });
+      }
+    }
+  }
+
+  firstRoute = false;
+}
+
+/* scrollspy: highlights the small tab of whichever home section you're reading */
+(function initScrollSpy() {
+  const secs = ['section-about', 'section-projects', 'section-hardware', 'section-contact']
+    .map(s => document.getElementById(s)).filter(Boolean);
+  if (!secs.length) return;
+
+  const spy = new IntersectionObserver(entries => {
+    if (Date.now() < spyPauseUntil) return;
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (!visible) return;
+    const id = visible.target.id.replace(/^section-/, '') || 'about';
+    $$('.subtabs-group[data-for="about"] .sub-tab').forEach(t =>
+      t.classList.toggle('active', t.getAttribute('href') === '#' + id));
+  }, { rootMargin: '-30% 0px -60% 0px', threshold: [0, 0.2, 0.5] });
+
+  secs.forEach(s => spy.observe(s));
+})();
+
+window.addEventListener('hashchange', route);
+route();
+
+/* devlog gallery (hardware shots intentionally not here) + click to zoom lightbox */
+(function initGallery() {
+  const grid = $('#gallery-grid');
+  if (!grid) return;
+
+  // generated from stardance devlogs — newest first
+  const DEVLOG_IMAGES = [
+    '2026-08-22-1.png', '2026-08-22-2.png', '2026-08-22-3.png',
+    '2026-08-20-1.png', '2026-08-20-2.png', '2026-08-20-3.png',
+    '2026-08-18-1.png', '2026-08-18-2.png', '2026-08-18-3.png', '2026-08-18-4.png',
+    '2026-08-15-1.png', '2026-08-15-2.png', '2026-08-15-3.png',
+    '2026-08-10-1.png', '2026-08-10-2.jpg',
+    '2026-07-29-1.png', '2026-07-29-2.png',
+    '2026-07-25-1.png', '2026-07-25-2.png', '2026-07-25-3.png', '2026-07-25-4.png',
+    '2026-07-23-1.png',
+    '2026-07-20-1.png', '2026-07-20-2.png',
+    '2026-07-11-1.png', '2026-07-11-2.png', '2026-07-11-3.png', '2026-07-11-4.png',
+    '2026-07-09-1.png',
+    '2026-07-03-1.png',
+    '2026-07-02-1.png'
+  ];
+
+  for (const file of DEVLOG_IMAGES) {
+    const date = file.slice(0, 10);
+    const item = document.createElement('figure');
+    item.className = 'gallery-item';
+    const img = document.createElement('img');
+    img.src = `deltavr-assets/gallery/devlog/${file}`;
+    img.alt = `devlog ${date}`;
+    img.loading = 'lazy';
+    const cap = document.createElement('figcaption');
+    cap.className = 'gallery-caption';
+    cap.textContent = `devlog ${date}`;
+    item.append(img, cap);
+    grid.appendChild(item);
+
+    item.addEventListener('click', () => openLightbox(img.src, cap.textContent));
+  }
+
+  const modal = $('#img-modal');
+  const modalImg = $('#img-modal-img');
+  const modalCap = $('#img-modal-caption');
+
+  function openLightbox(src, caption) {
+    modalImg.src = src;
+    modalCap.textContent = caption;
+    modal.classList.add('open');
+  }
+
+  $('#close-img-modal')?.addEventListener('click', () => modal.classList.remove('open'));
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) modal.classList.remove('open');
   });
 })();

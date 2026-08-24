@@ -1,0 +1,6 @@
+# keep the legacy deltavr next app (contains .env.local keys), tooling and junk out of deployments
+deltavr/
+tools/
+node_modules/
+.next/
+.idea/
