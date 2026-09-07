@@ -23,6 +23,7 @@
   --text-dim: #888888;
 
   --red-accent: #ff2e2e;
+  --orange-accent: #ff6a1a;
 
   --nav-bg: rgba(255, 255, 255, 0.92);
 
@@ -440,6 +441,18 @@ body:not(.loading) main {
 
 .btn-ghost:hover {
   border-color: var(--text);
+}
+
+/* single loud accent for the primary release CTA */
+.btn-accent {
+  background: var(--orange-accent);
+  color: #fff;
+  border: 1px solid var(--orange-accent);
+}
+
+.btn-accent:hover {
+  background: #e05a08;
+  border-color: #e05a08;
 }
 
 .interest-list {
