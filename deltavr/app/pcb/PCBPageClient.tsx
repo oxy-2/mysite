@@ -21,7 +21,7 @@ export default function PCBPageClient() {
     <>
       <div className="section-label">
         <span className="red-dot" />
-        <span>02 // pcb — interactive 3d</span>
+        <span>02 // pcb interactive 3d</span>
       </div>
 
       <div className="viewer-controls" style={{ marginBottom: 16 }}>

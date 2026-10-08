@@ -1,7 +1,7 @@
 import PCBPageClient from "./PCBPageClient";
 
 export const metadata = {
-  title: "[deltavr.] — pcb",
+  title: "[deltavr.] pcb",
 };
 
 export default function PCBPage() {

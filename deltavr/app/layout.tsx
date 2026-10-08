@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description:
     "deltavr is an open source pcvr headset. orbsLAM3 headset-camera tracking processed by pc, tmr controllers, hall triggers, full asa shell.",
   openGraph: {
-    title: "deltavr — open source pcvr headset",
+    title: "deltavr, open source pcvr headset",
     description:
       "pseudopancake optics, orbsLAM3 on-headset-camera tracking processed by pc, tmr + hall controller boards, printed in asa.",
     url: "https://oxygenated.uk/deltavr",

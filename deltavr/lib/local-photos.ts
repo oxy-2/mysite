@@ -47,8 +47,7 @@ async function walk(dir: string, base = dir): Promise<string[]> {
   return out;
 }
 
-// drop a file into public/gallery/ (any subfolder) and it shows up after the next deploy / revalidate.
-// no more hand-editing devlog-gallery.ts
+// anything under public/gallery/ shows up after deploy
 export async function getLocalPhotos(): Promise<{
   devlog: LocalPhoto[];
   hardware: LocalPhoto[];

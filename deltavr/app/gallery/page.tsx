@@ -5,7 +5,7 @@ import { getTeamLapseFeed } from "@/lib/lapse";
 import { TEAM } from "@/lib/site";
 
 export const metadata = {
-  title: "[deltavr.] — gallery",
+  title: "[deltavr.] gallery",
   description:
     "devlog shots, hardware photos, and live lapse timelapses from oxy, grand, and joao.",
 };

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAllUpdates } from "@/lib/updates";
 import TimeElapsed from "@/components/TimeElapsed";
 
-export const metadata = { title: "[deltavr.] — updates" };
+export const metadata = { title: "[deltavr.] updates" };
 
 function fmtDate(d: string) {
   if (!d) return "";

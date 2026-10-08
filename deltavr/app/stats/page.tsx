@@ -7,7 +7,7 @@ import {
 import { getHackatime, type HackatimeData } from "@/lib/hackatime";
 
 export const metadata = {
-  title: "[deltavr.] — stats",
+  title: "[deltavr.] stats",
   description:
     "live github + hackatime numbers for deltavr. coding hours, project breakdown, commit heatmap.",
 };
@@ -87,13 +87,13 @@ export default async function StatsPage() {
         <div className="stat-strip" style={{ marginBottom: 32 }}>
           <div className="stat-box">
             <div className="stat-num">
-              {hackatime ? hackatime.totalText : "—"}
+              {hackatime ? hackatime.totalText : "."}
             </div>
             <div className="stat-label">deltavr coding time (hackatime)</div>
           </div>
           <div className="stat-box">
             <div className="stat-num">
-              {hackatime ? `${hackatime.weekHours}h` : "—"}
+              {hackatime ? `${hackatime.weekHours}h` : "."}
             </div>
             <div className="stat-label">
               this week / {hackatime?.weekGoalHours ?? 42}h goal
@@ -108,12 +108,12 @@ export default async function StatsPage() {
             )}
           </div>
           <div className="stat-box">
-            <div className="stat-num">{repo ? repo.stars : "—"}</div>
+            <div className="stat-num">{repo ? repo.stars : "."}</div>
             <div className="stat-label">github stars</div>
           </div>
           <div className="stat-box">
             <div className="stat-num">
-              {hackatime?.todayHours != null ? `${hackatime.todayHours}h` : commits.length > 0 ? commits[0].sha : "—"}
+              {hackatime?.todayHours != null ? `${hackatime.todayHours}h` : commits.length > 0 ? commits[0].sha : "."}
             </div>
             <div className="stat-label">
               {hackatime?.todayHours != null ? "logged today" : "latest commit"}
@@ -233,19 +233,19 @@ export default async function StatsPage() {
             </div>
             <div className="lang-row">
               <span>top editor</span>
-              <span>{hackatime?.topEditor ?? "—"}</span>
+              <span>{hackatime?.topEditor ?? "."}</span>
             </div>
             <div className="lang-row">
               <span>top os</span>
-              <span>{hackatime?.topOs ?? "—"}</span>
+              <span>{hackatime?.topOs ?? "."}</span>
             </div>
             <div className="lang-row">
               <span>top category</span>
-              <span>{hackatime?.topCategory ?? "—"}</span>
+              <span>{hackatime?.topCategory ?? "."}</span>
             </div>
             <div className="lang-row">
               <span>top language</span>
-              <span>{hackatime?.topLanguage ?? "—"}</span>
+              <span>{hackatime?.topLanguage ?? "."}</span>
             </div>
             {hackatime && (hackatime.editors.length > 0 || hackatime.categories.length > 0) && (
               <div style={{ marginTop: 12 }}>

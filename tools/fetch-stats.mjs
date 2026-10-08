@@ -1,6 +1,6 @@
 /* builds data/deltavr-stats.json for the stats tab
-   usage: node tools/fetch-stats.mjs
-   reads keys from deltavr/.env.local, never ships them anywhere */
+   node tools/fetch-stats.mjs
+   keys from deltavr/.env.local, they stay local */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';

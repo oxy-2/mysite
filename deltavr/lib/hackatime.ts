@@ -1,8 +1,8 @@
-// hackatime (hack club wakatime) — server-side only, key stays in env
+// hackatime, key stays in env
 const BASE =
   process.env.HACKATIME_BASE ?? "https://hackatime.hackclub.com/api/hackatime/v1";
 
-// the 5 projects currently selected in oxy's hackatime filter for deltavr
+// the 5 projects on the hackatime filter
 export const DELTAVR_PROJECTS = [
   "delta vr",
   "deltavr",
@@ -11,7 +11,7 @@ export const DELTAVR_PROJECTS = [
   "deltavr phase 2",
 ] as const;
 
-// weekly goal from the hackatime dashboard (42h)
+// weekly goal from the dashboard
 export const WEEKLY_GOAL_HOURS = 42;
 
 type NamedSeconds = { name: string; total_seconds: number; percent?: number };

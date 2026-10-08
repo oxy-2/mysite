@@ -1,4 +1,4 @@
-// lapse.hackclub.com public api — server-side, no key needed for public profiles
+// lapse.hackclub.com, public profiles only
 const API = "https://api.lapse.hackclub.com/api";
 
 // these handles are fixed. oxy, grand, joao.

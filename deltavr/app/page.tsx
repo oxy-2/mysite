@@ -86,15 +86,15 @@ export default async function Home() {
         <div className="container">
           <div className="stat-strip">
             <div className="stat-box">
-              <div className="stat-num">{repo ? repo.stars : "—"}</div>
+              <div className="stat-num">{repo ? repo.stars : "."}</div>
               <div className="stat-label">github stars</div>
             </div>
             <div className="stat-box">
-              <div className="stat-num">{repo ? repo.forks : "—"}</div>
+              <div className="stat-num">{repo ? repo.forks : "."}</div>
               <div className="stat-label">forks</div>
             </div>
             <div className="stat-box">
-              <div className="stat-num">{commits.length > 0 ? `${commits[0].sha}` : "—"}</div>
+              <div className="stat-num">{commits.length > 0 ? `${commits[0].sha}` : "."}</div>
               <div className="stat-label">latest commit</div>
             </div>
             <div className="stat-box">

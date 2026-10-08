@@ -1,7 +1,7 @@
 import SchematicPageClient from "./SchematicPageClient";
 
 export const metadata = {
-  title: "[deltavr.] — schematics",
+  title: "[deltavr.] schematics",
 };
 
 export default function SchematicPage() {

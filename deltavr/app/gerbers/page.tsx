@@ -1,22 +1,22 @@
 import { BASE_PATH } from "@/lib/site";
 
 export const metadata = {
-  title: "[deltavr.] — gerbers",
+  title: "[deltavr.] gerbers",
 };
 
 const DOWNLOADS = [
   {
-    name: "controller board — gerbers (zip)",
+    name: "controller board gerbers (zip)",
     file: `${BASE_PATH}/downloads/Gerber_PCB.zip`,
     desc: "full gerber package for the controller pcb, ready to send straight to jlcpcb / pcbway / whoever.",
   },
   {
-    name: "hmd board — glb model",
+    name: "hmd board glb model",
     file: `${BASE_PATH}/models/hmd.glb`,
     desc: "binary gltf of the headset main board for cad / viewer use.",
   },
   {
-    name: "controller board — glb model",
+    name: "controller board glb model",
     file: `${BASE_PATH}/models/controller.glb`,
     desc: "binary gltf of the controller board for cad / viewer use.",
   },

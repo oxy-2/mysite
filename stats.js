@@ -1,5 +1,5 @@
-/* hackatime-style dashboard for the stats tab + the github strip on the overview tab.
-   reads the baked data/deltavr-stats.json (refresh with: node tools/fetch-stats.mjs) */
+/* stats tab + the github strip on the overview tab.
+   reads data/deltavr-stats.json (node tools/fetch-stats.mjs) */
 
 let dataCache = null;
 let chartsDrawn = false;
@@ -32,7 +32,7 @@ function realEditors() {
   return dataCache.hackatime.editors.filter(e => !NOT_EDITORS.has(e.name));
 }
 
-/* crisp canvas setup, returns 2d ctx working in css pixels */
+/* canvas at css pixel size */
 function prepCanvas(canvas, cssW, cssH) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = cssW * dpr;
@@ -310,7 +310,7 @@ function fillBoxes() {
   if (commitEl && gh?.latestCommit) commitEl.textContent = `${gh.latestCommit.sha}`;
 
   const upd = $id('stats-updated');
-  if (upd) upd.textContent = `data baked ${new Date(dataCache.generated).toLocaleString()} · refresh with node tools/fetch-stats.mjs`;
+  if (upd) upd.textContent = `updated ${new Date(dataCache.generated).toLocaleString()}`;
 }
 
 function fillAiBar() {

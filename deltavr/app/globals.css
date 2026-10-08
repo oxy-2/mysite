@@ -1,4 +1,4 @@
-/* deltavr demo — exact port of oxygenated.uk design tokens */
+/* deltavr demo . exact port of oxygenated.uk design tokens */
 
 *,
 *::before,
@@ -126,7 +126,7 @@ body.loading {
   }
 }
 
-/* nav — deltavr variant: flat mono links w/ red active underline (not folder tabs) */
+/* nav . deltavr variant: flat mono links w/ red active underline (not folder tabs) */
 .nav-header {
   position: fixed;
   top: 0;

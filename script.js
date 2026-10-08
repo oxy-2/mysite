@@ -572,8 +572,7 @@ function route() {
 window.addEventListener('hashchange', route);
 route();
 
-/* gallery: live lapse videos (oxy / grand / joao) + every photo under deltavr-assets/gallery.
-   both pull in the browser so posting on lapse or pushing photos updates this without a rebuild. */
+/* gallery: lapse videos + photos. pulls in the browser so new stuff shows up on its own */
 (function initGallery() {
   const grid = $('#gallery-grid');
   if (!grid) return;
@@ -728,7 +727,7 @@ route();
     const note = document.createElement('p');
     note.className = 'dim';
     note.style.cssText = 'font-size:11px;margin:-6px 0 14px;max-width:640px';
-    note.innerHTML = `pulled straight from <a href="https://lapse.hackclub.com" target="_blank" rel="noopener">lapse.hackclub.com</a>. post there and it shows up here.`;
+    note.innerHTML = `// lapse timelapses from oxy(me), grand and joao`;
     box.parentElement.insertBefore(note, box);
 
     const videos = [];
