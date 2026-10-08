@@ -37,7 +37,7 @@ export default function GerbersPage() {
           </h2>
           <p className="card-text" style={{ marginBottom: 28 }}>
             everything you need to get these printed. gerber zips go straight to
-            your fab; source lives in the repo under{" "}
+            your fab. source lives in the repo under{" "}
             <code>kicad/</code> and <code>kicad controllers/</code>.
           </p>
 

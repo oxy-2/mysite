@@ -26,7 +26,7 @@ export default async function Home() {
               a pseudopancake pcvr headset with orbsLAM3 tracking running on the
               headset camera, processed by your pc. tmr controllers with hall
               triggers, everything printed in asa on a lightly-modified ender 3.
-              built for stardance — shipping soon.
+              built for stardance, shipping soon.
             </p>
 
             <div className="hero-links">
@@ -152,7 +152,7 @@ export default async function Home() {
               </div>
               <h3 className="card-title">follow the build on stardance</h3>
               <p className="card-text">
-                daily devlogs with time-elapsed tracking while stardance runs —
+                daily devlogs with time-elapsed tracking while stardance runs,
                 mirrored here in the updates feed.
               </p>
               <div style={{ marginTop: 16 }}>
@@ -174,7 +174,7 @@ export default async function Home() {
               </div>
               <h3 className="card-title">updates feed</h3>
               <p className="card-text">
-                every stardance devlog lives here now — the full build log from
+                every stardance devlog lives here now. the full build log from
                 fusion-360 struggles to finished controller pcbs, newest first.
               </p>
               <div style={{ marginTop: 16 }}>

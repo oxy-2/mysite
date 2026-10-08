@@ -1,39 +1,49 @@
 import GalleryGrid from "@/components/GalleryGrid";
-import { DEVLOG_IMAGES } from "@/lib/devlog-gallery";
-import { BASE_PATH } from "@/lib/site";
+import LapseGrid from "@/components/LapseGrid";
+import { getLocalPhotos } from "@/lib/local-photos";
+import { getTeamLapseFeed } from "@/lib/lapse";
+import { TEAM } from "@/lib/site";
 
 export const metadata = {
   title: "[deltavr.] — gallery",
+  description:
+    "devlog shots, hardware photos, and live lapse timelapses from oxy, grand, and joao.",
 };
 
-const HARDWARE = [
-  {
-    src: `${BASE_PATH}/gallery/controller-pinouts.png`,
-    caption: "controller pcb — pinouts",
-  },
-  {
-    src: `${BASE_PATH}/gallery/thumbstick-board.png`,
-    caption: "thumbstick breakout — board render (kicad)",
-  },
-  {
-    src: `${BASE_PATH}/gallery/thumbstick-schematic.png`,
-    caption: "thumbstick breakout — schematic",
-  },
-  {
-    src: `${BASE_PATH}/gallery/thumbstick-assembled.jpg`,
-    caption: "thumbstick breakout — assembled",
-  },
-  {
-    src: `${BASE_PATH}/gallery/nicenano.png`,
-    caption: "nice!nano footprint reference",
-  },
-];
+export const revalidate = 1800;
 
-export default function GalleryPage() {
-  // every devlog image, newest first
-  const devlog = DEVLOG_IMAGES.map((d) => ({
-    src: d.src,
-    caption: `devlog ${d.date}`,
+export default async function GalleryPage() {
+  const [photos, feeds] = await Promise.all([getLocalPhotos(), getTeamLapseFeed()]);
+
+  const lapseFeeds = feeds.map((f) => ({
+    handle: f.user.handle,
+    displayName: f.user.displayName,
+    profilePictureUrl: f.user.profilePictureUrl,
+    profileUrl: `https://lapse.hackclub.com/user/@${f.user.handle}`,
+    videos: f.videos.map((v) => ({
+      id: v.id,
+      name: v.name,
+      description: v.description,
+      createdAt: v.createdAt,
+      duration: v.duration,
+      playbackUrl: v.playbackUrl,
+      thumbnailUrl: v.thumbnailUrl,
+    })),
+  }));
+
+  const devlogImages = photos.devlog.map((p) => ({
+    src: p.src,
+    caption: p.date ? `devlog ${p.date}${p.caption && p.caption !== p.date ? ` · ${p.caption}` : ""}` : p.caption,
+  }));
+
+  const hardwareImages = photos.hardware.map((p) => ({
+    src: p.src,
+    caption: p.caption,
+  }));
+
+  const otherImages = photos.other.map((p) => ({
+    src: p.src,
+    caption: p.caption,
   }));
 
   return (
@@ -41,16 +51,73 @@ export default function GalleryPage() {
       <div className="container">
         <div className="section-label">
           <span className="red-dot" />
-          <span>05 // gallery — everything from the devlogs</span>
+          <span>05 // gallery · lapse videos, devlogs, hardware</span>
         </div>
 
-        <GalleryGrid images={devlog} />
+        {/* team strip */}
+        <div className="team-strip">
+          {TEAM.map((t) => (
+            <a
+              key={t.handle}
+              href={t.url}
+              target="_blank"
+              rel="noopener"
+              className="team-chip"
+            >
+              <span className="red-dot" />
+              <span>
+                {t.label} <span className="dim">@{t.handle}</span>
+              </span>
+            </a>
+          ))}
+        </div>
 
-        <div className="section-label" style={{ marginTop: 48 }}>
+        {/* live lapse videos */}
+        <div className="section-label" style={{ marginTop: 8 }}>
           <span className="red-dot" />
-          <span>// hardware shots</span>
+          <span>// lapse timelapses · live from oxy / grand / joao</span>
         </div>
-        <GalleryGrid images={HARDWARE} />
+        <p className="dim" style={{ fontSize: 11, marginBottom: 16, maxWidth: 640 }}>
+          pulled straight from{" "}
+          <a href="https://lapse.hackclub.com" target="_blank" rel="noopener">
+            lapse.hackclub.com
+          </a>
+          . post a timelapse there and it shows up here, no site rebuild needed.
+        </p>
+        <LapseGrid feeds={lapseFeeds} />
+
+        {/* devlog photos */}
+        {devlogImages.length > 0 && (
+          <>
+            <div className="section-label" style={{ marginTop: 48 }}>
+              <span className="red-dot" />
+              <span>// devlog shots</span>
+            </div>
+            <GalleryGrid images={devlogImages} />
+          </>
+        )}
+
+        {/* hardware */}
+        {hardwareImages.length > 0 && (
+          <>
+            <div className="section-label" style={{ marginTop: 48 }}>
+              <span className="red-dot" />
+              <span>// hardware shots</span>
+            </div>
+            <GalleryGrid images={hardwareImages} />
+          </>
+        )}
+
+        {/* anything else sitting in public/gallery */}
+        {otherImages.length > 0 && (
+          <>
+            <div className="section-label" style={{ marginTop: 48 }}>
+              <span className="red-dot" />
+              <span>// more from the repo</span>
+            </div>
+            <GalleryGrid images={otherImages} />
+          </>
+        )}
       </div>
     </section>
   );

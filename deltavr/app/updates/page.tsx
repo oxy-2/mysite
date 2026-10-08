@@ -21,12 +21,12 @@ export default function UpdatesPage() {
       <div className="container">
         <div className="section-label">
           <span className="red-dot" />
-          <span>07 // updates — build log</span>
+          <span>07 // updates · build log</span>
         </div>
 
         {posts.length === 0 ? (
           <div className="empty-note">
-            no updates yet — drop a .mdx file into content/updates/ and it shows up here.
+            no updates yet. drop a .mdx file into content/updates/ and it shows up here.
           </div>
         ) : (
           <div className="post-list">

@@ -1,14 +1,14 @@
 # deltavr site
 
-the deltavr demo site — lives inside the **mysite** repo as a Next.js app under `deltavr/`, deployed to **oxygenated.uk/deltavr**.
+the deltavr demo site. lives inside the **mysite** repo as a Next.js app under `deltavr/`, deployed to **oxygenated.uk/deltavr**.
 
-- `/pcb` — interactive 3d board viewer (orbit / explode / measure / spin)
-- `/schematic` — full kicad schematics, drag + scroll-zoom
-- `/gallery` — every devlog image, newest first
-- `/stats` — github repo stats, commit heatmap, hackatime coding hours
-- `/updates` — build log. static: drop a `.mdx` file into `content/updates/` with frontmatter `title` + `date`, done.
+- `/pcb` · interactive 3d board viewer (orbit / explode / measure / spin)
+- `/schematic` · full kicad schematics, drag + scroll-zoom
+- `/gallery` · live lapse videos from oxy / grand / joao, plus every photo sitting in `public/gallery/`
+- `/stats` · github stats + live hackatime coding hours (deltavr projects only)
+- `/updates` · build log. static: drop a `.mdx` file into `content/updates/` with frontmatter `title` + `date`, done.
 
-no database, no auth — everything is either static or read-only api pulls.
+no database, no auth. everything is either static or read-only api pulls.
 
 ## local dev
 
@@ -30,7 +30,7 @@ copy `.env.local.example` → `.env.local` (or set them in vercel):
 | `HACKATIME_BASE` | `https://hackatime.hackclub.com/api/hackatime/v1` |
 | `HACKATIME_API_KEY` | your hackatime key |
 
-both are optional-ish: pages degrade gracefully without them. keys only ever live server-side (`lib/github.ts`, `lib/hackatime.ts`) — they're never sent to the browser.
+both are optional-ish: pages degrade gracefully without them. keys only ever live server-side (`lib/github.ts`, `lib/hackatime.ts`), never sent to the browser.
 
 ## deploy
 
@@ -46,7 +46,7 @@ your existing mysite project keeps serving `/`.
 
 ## updating content
 
-- **updates** — add `content/updates/2026-08-30-my-entry.mdx`:
+- **updates** · add `content/updates/2026-08-30-my-entry.mdx`:
   ```
   ---
   title: "controller pcbs arrived"
@@ -54,8 +54,10 @@ your existing mysite project keeps serving `/`.
   ---
   text here, markdown works
   ```
-- **gallery devlog images** — drop files into `public/gallery/devlog/` and add a row in `lib/devlog-gallery.ts` (newest at top)
-- **board models/schematics** — re-export with kicad-cli:
+- **photos** · drop files anywhere under `public/gallery/` (use a `devlog/` subfolder for devlog shots). the gallery scans the folder on its own, no need to touch any ts file. push + vercel rebuilds and they show up.
+- **lapse videos** · just post on [lapse](https://lapse.hackclub.com). handles `@oxy`, `@merekelene`, `@monizjoao982` are hardcoded in `lib/lapse.ts` and refresh every 30 min without a rebuild.
+- **hackatime projects** · the stats page filters to deltavr-ish project names. list lives in `lib/hackatime.ts` (`DELTAVR_PROJECTS`). weekly goal is `WEEKLY_GOAL_HOURS` right above it.
+- **board models/schematics** · re-export with kicad-cli:
   ```powershell
   & "C:\Program Files\KiCad\10.0\bin\kicad-cli.exe" pcb export glb "kicad\deltavr hmd.kicad_pcb" -o "deltavr\public\models\hmd.glb"
   & "C:\Program Files\KiCad\10.0\bin\kicad-cli.exe" sch export svg "kicad\deltavr hmd.kicad_sch" -o "deltavr\public\schematics\hmd"
