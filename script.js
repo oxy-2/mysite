@@ -572,43 +572,79 @@ function route() {
 window.addEventListener('hashchange', route);
 route();
 
-/* devlog gallery (hardware shots intentionally not here) + click to zoom lightbox */
+/* gallery: live lapse videos (oxy / grand / joao) + every photo under deltavr-assets/gallery.
+   both pull in the browser so posting on lapse or pushing photos updates this without a rebuild. */
 (function initGallery() {
   const grid = $('#gallery-grid');
   if (!grid) return;
 
-  // generated from stardance devlogs — newest first
-  const DEVLOG_IMAGES = [
-    '2026-08-22-1.png', '2026-08-22-2.png', '2026-08-22-3.png',
-    '2026-08-20-1.png', '2026-08-20-2.png', '2026-08-20-3.png',
-    '2026-08-18-1.png', '2026-08-18-2.png', '2026-08-18-3.png', '2026-08-18-4.png',
-    '2026-08-15-1.png', '2026-08-15-2.png', '2026-08-15-3.png',
-    '2026-08-10-1.png', '2026-08-10-2.jpg',
-    '2026-07-29-1.png', '2026-07-29-2.png',
-    '2026-07-25-1.png', '2026-07-25-2.png', '2026-07-25-3.png', '2026-07-25-4.png',
-    '2026-07-23-1.png',
-    '2026-07-20-1.png', '2026-07-20-2.png',
-    '2026-07-11-1.png', '2026-07-11-2.png', '2026-07-11-3.png', '2026-07-11-4.png',
-    '2026-07-09-1.png',
-    '2026-07-03-1.png',
-    '2026-07-02-1.png'
+  const LAPSE_HANDLES = ['oxy', 'merekelene', 'monizjoao982'];
+  const LAPSE_API = 'https://api.lapse.hackclub.com/api';
+  const GH_TREE = 'https://api.github.com/repos/oxy-2/mysite/git/trees/main?recursive=1';
+
+  // fallback if github api is rate limited
+  const FALLBACK_PHOTOS = [
+    'deltavr-assets/gallery/devlog/2026-08-22-1.png',
+    'deltavr-assets/gallery/devlog/2026-08-22-2.png',
+    'deltavr-assets/gallery/devlog/2026-08-22-3.png',
+    'deltavr-assets/gallery/devlog/2026-08-20-1.png',
+    'deltavr-assets/gallery/devlog/2026-08-20-2.png',
+    'deltavr-assets/gallery/devlog/2026-08-20-3.png',
+    'deltavr-assets/gallery/devlog/2026-08-18-1.png',
+    'deltavr-assets/gallery/devlog/2026-08-18-2.png',
+    'deltavr-assets/gallery/devlog/2026-08-18-3.png',
+    'deltavr-assets/gallery/devlog/2026-08-18-4.png',
+    'deltavr-assets/gallery/devlog/2026-08-15-1.png',
+    'deltavr-assets/gallery/devlog/2026-08-15-2.png',
+    'deltavr-assets/gallery/devlog/2026-08-15-3.png',
+    'deltavr-assets/gallery/devlog/2026-08-10-1.png',
+    'deltavr-assets/gallery/devlog/2026-08-10-2.jpg',
+    'deltavr-assets/gallery/devlog/2026-07-29-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-29-2.png',
+    'deltavr-assets/gallery/devlog/2026-07-25-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-25-2.png',
+    'deltavr-assets/gallery/devlog/2026-07-25-3.png',
+    'deltavr-assets/gallery/devlog/2026-07-25-4.png',
+    'deltavr-assets/gallery/devlog/2026-07-23-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-20-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-20-2.png',
+    'deltavr-assets/gallery/devlog/2026-07-11-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-11-2.png',
+    'deltavr-assets/gallery/devlog/2026-07-11-3.png',
+    'deltavr-assets/gallery/devlog/2026-07-11-4.png',
+    'deltavr-assets/gallery/devlog/2026-07-09-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-03-1.png',
+    'deltavr-assets/gallery/devlog/2026-07-02-1.png',
+    'deltavr-assets/gallery/controller-pinouts.png',
+    'deltavr-assets/gallery/nicenano.png',
+    'deltavr-assets/gallery/thumbstick-assembled.jpg',
+    'deltavr-assets/gallery/thumbstick-board.png',
+    'deltavr-assets/gallery/thumbstick-schematic.png',
+    'pfp.png'
   ];
 
-  for (const file of DEVLOG_IMAGES) {
-    const date = file.slice(0, 10);
-    const item = document.createElement('figure');
-    item.className = 'gallery-item';
-    const img = document.createElement('img');
-    img.src = `deltavr-assets/gallery/devlog/${file}`;
-    img.alt = `devlog ${date}`;
-    img.loading = 'lazy';
-    const cap = document.createElement('figcaption');
-    cap.className = 'gallery-caption';
-    cap.textContent = `devlog ${date}`;
-    item.append(img, cap);
-    grid.appendChild(item);
+  const IMG_EXT = /\.(png|jpe?g|webp|gif)$/i;
 
-    item.addEventListener('click', () => openLightbox(img.src, cap.textContent));
+  function fmtDur(sec) {
+    if (!sec || sec < 0) return '0:00';
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+  }
+
+  function fmtDate(ms) {
+    return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function photoCaption(path) {
+    const name = path.split('/').pop().replace(/\.[a-z0-9]+$/i, '');
+    const date = name.match(/^(\d{4}-\d{2}-\d{2})/);
+    const rest = name.replace(/^\d{4}-\d{2}-\d{2}-?/, '').replace(/[-_]+/g, ' ').trim();
+    if (date) return `devlog ${date[1]}${rest ? ' · ' + rest : ''}`;
+    return rest || name;
   }
 
   const modal = $('#img-modal');
@@ -628,4 +664,132 @@ route();
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) modal.classList.remove('open');
   });
+
+  function addSection(label) {
+    const wrap = document.createElement('div');
+    wrap.className = 'gallery-section';
+    wrap.innerHTML = `<div class="section-label" style="margin: 28px 0 14px"><span class="red-dot"></span><span>${label}</span></div>`;
+    grid.parentElement.insertBefore(wrap, grid);
+    const box = document.createElement('div');
+    box.className = grid.className;
+    wrap.appendChild(box);
+    return box;
+  }
+
+  function addPhoto(box, src, caption) {
+    const item = document.createElement('figure');
+    item.className = 'gallery-item';
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = caption;
+    img.loading = 'lazy';
+    const cap = document.createElement('figcaption');
+    cap.className = 'gallery-caption';
+    cap.textContent = caption;
+    item.append(img, cap);
+    box.appendChild(item);
+    item.addEventListener('click', () => openLightbox(src, caption));
+  }
+
+  function addVideo(box, v) {
+    const item = document.createElement('article');
+    item.className = 'lapse-card';
+    const playUrl = v.playbackUrl || '';
+    const thumb = v.thumbnailUrl || '';
+    const name = v.name || '(untitled)';
+    const who = v.owner?.handle || '';
+    const when = fmtDate(v.createdAt);
+    const dur = fmtDur(v.duration);
+
+    item.innerHTML = `
+      <div class="lapse-thumb">
+        ${playUrl
+        ? `<video preload="none" playsinline controls poster="${thumb}" src="${playUrl}"></video>`
+        : `<img src="${thumb}" alt="${name}" loading="lazy" />`}
+        <span class="lapse-dur">${dur}</span>
+      </div>
+      <div class="lapse-meta">
+        <h3 class="lapse-title"></h3>
+        <div class="dim lapse-sub">@${who} · ${when}</div>
+      </div>`;
+    item.querySelector('.lapse-title').textContent = name;
+    const desc = item.querySelector('.lapse-meta');
+    if (v.description) {
+      const p = document.createElement('p');
+      p.className = 'lapse-desc';
+      p.textContent = v.description;
+      desc.insertBefore(p, desc.querySelector('.lapse-sub'));
+    }
+    box.appendChild(item);
+  }
+
+  async function loadLapse() {
+    const box = addSection('// lapse timelapses · live from oxy / grand / joao');
+    const note = document.createElement('p');
+    note.className = 'dim';
+    note.style.cssText = 'font-size:11px;margin:-6px 0 14px;max-width:640px';
+    note.innerHTML = `pulled straight from <a href="https://lapse.hackclub.com" target="_blank" rel="noopener">lapse.hackclub.com</a>. post there and it shows up here.`;
+    box.parentElement.insertBefore(note, box);
+
+    const videos = [];
+    for (const handle of LAPSE_HANDLES) {
+      try {
+        const uRes = await fetch(`${LAPSE_API}/user/query?handle=${encodeURIComponent(handle)}`);
+        const uJson = await uRes.json();
+        const user = uJson?.data?.user;
+        if (!user) continue;
+        const tRes = await fetch(`${LAPSE_API}/timelapse/findByUser?user=${encodeURIComponent(user.id)}`);
+        const tJson = await tRes.json();
+        for (const t of tJson?.data?.timelapses ?? []) {
+          if (t.playbackUrl || t.thumbnailUrl) videos.push(t);
+        }
+      } catch { /* one handle failing shouldnt kill the rest */ }
+    }
+
+    videos.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    if (!videos.length) {
+      box.innerHTML = '<div class="empty-note">no lapse videos rn. they show up automatically once posted.</div>';
+      return;
+    }
+    for (const v of videos) addVideo(box, v);
+  }
+
+  async function loadPhotos() {
+    const box = addSection('// photos · devlogs + hardware');
+    let paths = [];
+
+    try {
+      const res = await fetch(GH_TREE);
+      const j = await res.json();
+      paths = (j.tree || [])
+        .filter(t => t.type === 'blob' && IMG_EXT.test(t.path) && t.path.startsWith('deltavr-assets/gallery/'))
+        .map(t => t.path);
+      // also grab pfp if present at root
+      if ((j.tree || []).some(t => t.path === 'pfp.png')) paths.push('pfp.png');
+    } catch {
+      paths = FALLBACK_PHOTOS.slice();
+    }
+
+    if (!paths.length) paths = FALLBACK_PHOTOS.slice();
+
+    // newest dated first, hardware after
+    paths.sort((a, b) => {
+      const da = (a.match(/(\d{4}-\d{2}-\d{2})/) || [])[1] || '';
+      const db = (b.match(/(\d{4}-\d{2}-\d{2})/) || [])[1] || '';
+      if (da !== db) return db.localeCompare(da);
+      return b.localeCompare(a);
+    });
+
+    if (!paths.length) {
+      box.innerHTML = '<div class="empty-note">no photos yet.</div>';
+      return;
+    }
+    for (const p of paths) addPhoto(box, p, photoCaption(p));
+  }
+
+  // hide the old empty grid host so sections own the layout
+  grid.style.display = 'none';
+
+  loadLapse();
+  loadPhotos();
 })();

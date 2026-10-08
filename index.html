@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>[oxy.]</title>
-  <meta name="description" content="oxy — deltavr, aeronautics, space, low-level computing, pcb design." />
+  <meta name="description" content="oxy. deltavr, aeronautics, space, low-level computing, pcb design." />
 
   <!-- Fonts: Space Grotesk & JetBrains Mono & logo like favicon-->
   <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -35,7 +35,7 @@
     </div>
   </div>
 
-  <!-- nav bar: two tiers — big tabs switch the page, small tabs jump/switch inside it -->
+  <!-- nav bar: two tiers · big tabs switch the page, small tabs jump/switch inside it -->
   <header class="nav-header">
     <div class="nav-container">
       <a href="#about" class="nav-brand" id="brand-link">[oxy.]</a>
@@ -76,7 +76,7 @@
   </header>
 
   <main>
-    <!-- ============ 01 about me — one long page: hero / about / projects / hardware / contact ============ -->
+    <!-- ============ 01 about me · one long page: hero / about / projects / hardware / contact ============ -->
     <div class="panel active" id="panel-about">
       <!-- hero -->
       <section class="section hero-section" id="section-about">
@@ -210,7 +210,7 @@
               </div>
               <h3 class="proj-title">DeltaVR</h3>
               <p class="proj-desc">
-                custom vr hardware platform — now shipped. built custom pcb schematics, sourced components, designed
+                custom vr hardware platform, now shipped. built custom pcb schematics, sourced components, designed
                 enclosures, and printed parts on my modded ender 3.
               </p>
               <div class="proj-tags">
@@ -364,7 +364,7 @@
             <p class="hero-bio">
               a pseudopancake pcvr headset with orbsLAM3 tracking running on the headset camera, processed by your pc.
               tmr controllers with hall triggers, everything printed in asa on a lightly-modified ender 3. built for
-              stardance — now shipped.
+              stardance, now shipped.
             </p>
 
             <div class="hero-links">
@@ -393,19 +393,19 @@
           <div>
             <div class="stat-strip stat-strip-col">
               <div class="stat-box">
-                <div class="stat-num" id="ov-stars">—</div>
+                <div class="stat-num" id="ov-stars">·</div>
                 <div class="stat-label">github stars</div>
               </div>
               <div class="stat-box">
-                <div class="stat-num" id="ov-forks">—</div>
+                <div class="stat-num" id="ov-forks">·</div>
                 <div class="stat-label">forks</div>
               </div>
               <div class="stat-box">
-                <div class="stat-num stat-num-sm" id="ov-commit">—</div>
+                <div class="stat-num stat-num-sm" id="ov-commit">·</div>
                 <div class="stat-label">latest commit</div>
               </div>
               <div class="stat-box">
-                <div class="stat-num" id="ov-hours">—</div>
+                <div class="stat-num" id="ov-hours">·</div>
                 <div class="stat-label">hours logged (hackatime)</div>
               </div>
             </div>
@@ -440,7 +440,7 @@
               </div>
               <h3 class="card-title">hmd board</h3>
               <p class="card-text">
-                headset main board — nrf52840 + lsm6dsv imu, debug header exposing every pin.
+                headset main board. nrf52840 + lsm6dsv imu, debug header exposing every pin.
               </p>
               <div style="margin-top: 16px; display: flex; gap: 8px;">
                 <a href="https://github.com/oxy-2/deltavr/tree/main/kicad" target="_blank" rel="noopener"
@@ -456,7 +456,7 @@
               </div>
               <h3 class="card-title">controller board</h3>
               <p class="card-text">
-                left/right controller board — tmr stick via ads1115 adc, hall triggers, radio module for off-board
+                left/right controller board. tmr stick via ads1115 adc, hall triggers, radio module for off-board
                 install, art on the silk.
               </p>
               <div style="margin-top: 16px; display: flex; gap: 8px;">
@@ -476,7 +476,7 @@
         <div class="container">
           <div class="section-label">
             <span class="red-dot"></span>
-            <span>02.2 // schematics — vector, zoom all u want</span>
+            <span>02.2 // schematics · vector, zoom all u want</span>
           </div>
 
           <div class="board-toggle" id="sch-board-toggle">
@@ -511,7 +511,7 @@
         <div class="container">
           <div class="section-label">
             <span class="red-dot"></span>
-            <span>02.3 // gallery — everything from the devlogs</span>
+            <span>02.3 // gallery · lapse videos + photos</span>
           </div>
           <div class="gallery-grid" id="gallery-grid"><!-- filled by script --></div>
         </div>
@@ -524,26 +524,41 @@
         <div class="container">
           <div class="section-label">
             <span class="red-dot"></span>
-            <span>02.4 // stats — hackatime coding dashboard</span>
+            <span>02.4 // stats · hackatime coding dashboard</span>
           </div>
 
           <div class="stat-strip stat-strip-col" style="margin-bottom: 32px;">
             <div class="stat-box">
-              <div class="stat-num" id="st-total">—</div>
+              <div class="stat-num" id="st-total">·</div>
               <div class="stat-label">total time · deltavr</div>
             </div>
             <div class="stat-box">
-              <div class="stat-num" id="st-today">—</div>
+              <div class="stat-num" id="st-week">·</div>
+              <div class="stat-label" id="st-week-label">this week / 42h goal</div>
+              <div class="goal-track"><div class="goal-fill" id="st-week-bar"></div></div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num" id="st-today">·</div>
               <div class="stat-label">today</div>
             </div>
             <div class="stat-box">
-              <div class="stat-num stat-num-sm" id="st-editor">—</div>
+              <div class="stat-num stat-num-sm" id="st-editor">·</div>
               <div class="stat-label">top editor</div>
             </div>
             <div class="stat-box">
-              <div class="stat-num stat-num-sm" id="st-category">—</div>
+              <div class="stat-num stat-num-sm" id="st-category">·</div>
               <div class="stat-label">top category</div>
             </div>
+          </div>
+
+          <div class="dash-grid" style="margin-bottom: 24px;">
+            <article class="dash-card dash-span-12">
+              <div class="meta-row">
+                <span class="badge">project durations</span>
+                <span class="dim">deltavr filter · all time</span>
+              </div>
+              <div id="proj-rows"></div>
+            </article>
           </div>
 
           <div class="dash-grid">

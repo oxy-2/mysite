@@ -131,7 +131,7 @@ function drawGauge() {
   ctx.fillText(`goal ${fmtHours(ht.goalSeconds)} · ${Math.round((ht.todaySeconds / Math.max(ht.goalSeconds, 1)) * 100)}%`, cx, cy - 8);
 
   const cap = $id('gauge-caption');
-  if (cap) cap.textContent = `last heartbeat ${ht.lastHeartbeat ? new Date(ht.lastHeartbeat).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}`;
+  if (cap) cap.textContent = `last heartbeat ${ht.lastHeartbeat ? new Date(ht.lastHeartbeat).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '·'}`;
 }
 
 function weeklySeries() {
@@ -273,12 +273,38 @@ function fillBoxes() {
 
   set('st-total', fmtHours(ht.totalSeconds));
   set('st-today', fmtHours(ht.todaySeconds));
-  const eds = realEditors();
-  set('st-editor', eds[0]?.name ?? '—');
-  set('st-category', ht.categories[0]?.name ?? '—');
+  set('st-week', ht.weekHours != null ? `${ht.weekHours}h` : '·');
+  const weekLabel = $id('st-week-label');
+  if (weekLabel) weekLabel.textContent = `this week / ${ht.weeklyGoalHours || 42}h goal`;
+  const weekBar = $id('st-week-bar');
+  if (weekBar) weekBar.style.width = `${Math.min(100, ht.weekPct || 0)}%`;
 
-  set('ov-stars', gh?.stars ?? '—');
-  set('ov-forks', gh?.forks ?? '—');
+  // project duration bars (all deltavr-ish projects, longest first)
+  const prow = $id('proj-rows');
+  if (prow) {
+    prow.innerHTML = '';
+    const projs = (ht.projects || []).slice().sort((a, b) => b.seconds - a.seconds);
+    const max = Math.max(...projs.map(p => p.seconds), 1);
+    for (const p of projs) {
+      const row = document.createElement('div');
+      row.className = 'proj-row';
+      const w = Math.max(4, (p.seconds / max) * 100);
+      row.innerHTML =
+        `<span class="proj-name"></span>` +
+        `<div class="proj-track"><div class="proj-fill" style="width:${w}%"><span></span></div></div>`;
+      row.querySelector('.proj-name').textContent = p.name;
+      row.querySelector('.proj-fill span').textContent = fmtHours(p.seconds);
+      prow.appendChild(row);
+    }
+    if (!projs.length) prow.innerHTML = '<div class="empty-note">no project time yet.</div>';
+  }
+
+  const eds = realEditors();
+  set('st-editor', eds[0]?.name ?? '·');
+  set('st-category', ht.categories[0]?.name ?? '·');
+
+  set('ov-stars', gh?.stars ?? '·');
+  set('ov-forks', gh?.forks ?? '·');
   set('ov-hours', `${fmtHours(ht.totalSeconds)}`);
   const commitEl = $id('ov-commit');
   if (commitEl && gh?.latestCommit) commitEl.textContent = `${gh.latestCommit.sha}`;
@@ -352,7 +378,7 @@ async function boot() {
     if (activePanel === 'panel-stats') drawAllCharts();
   } catch {
     const set = (id, v) => { const e = $id(id); if (e) e.textContent = v; };
-    ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '—'));
+    ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '·'));
   }
 }
 

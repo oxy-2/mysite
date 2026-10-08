@@ -19,7 +19,13 @@ const HT_KEY = env.HACKATIME_API_KEY;
 const GH_TOKEN = env.GITHUB_TOKEN;
 const OWNER = 'oxy-2', REPO = 'deltavr';
 const USER_ID = 'U0BE41NFVH6';
-const PROJECT_KEYS = ['deltavr', 'delta vr']; // delta vr = legacy project name
+const PROJECT_KEYS = [
+  'deltavr',
+  'delta vr',
+  'deltavr [GitHub]',
+  'delta vr pcbs',
+  'deltavr phase 2',
+];
 
 if (!HT_KEY) { console.error('no HACKATIME_API_KEY in deltavr/.env.local'); process.exit(1); }
 
@@ -67,7 +73,10 @@ async function main() {
   const startIso = '2026-06-01T00:00:00Z';
   const endIso = new Date().toISOString().slice(0, 19) + 'Z';
   const hRes = await j(`https://hackatime.hackclub.com/api/v1/my/heartbeats?start_time=${startIso}&end_time=${endIso}`, HT_AUTH);
-  const mineHbs = (hRes.heartbeats || []).filter(h => PROJECT_KEYS.includes(h.project));
+  const mineHbs = (hRes.heartbeats || []).filter(h => {
+  const p = (h.project || '').toLowerCase();
+  return PROJECT_KEYS.some(k => k.toLowerCase() === p) || /delta\s*vr|deltavr/.test(p);
+});
 
   const durs = buildDurations(mineHbs);
   const rawTotal = durs.reduce((a, d) => a + (d.end - d.start), 0);
@@ -123,8 +132,18 @@ async function main() {
     }
   }
 
+  // weekly goal from the dashboard (42h). daily goal if the statusbar ever gives one.
+  const WEEKLY_GOAL_HOURS = 42;
   const statusbar = await j('https://hackatime.hackclub.com/api/hackatime/v1/users/current/statusbar/today', HT_AUTH).catch(() => null);
-  const goalSeconds = statusbar?.data?.goal?.target_seconds ?? 4 * 3600;
+  const dailyGoalSeconds = statusbar?.data?.goal?.target_seconds ?? 4 * 3600;
+  const goalSeconds = WEEKLY_GOAL_HOURS * 3600;
+
+  // this week (monday → now) for the goal bar
+  const nowMs = Date.now();
+  const monday = new Date(nowMs);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const weekSeconds = durs.reduce((a, d) => (d.start * 1000 >= monday.getTime() ? a + (d.end - d.start) * scale : a), 0);
 
   const aiCats = ['ai coding', 'artificial intelligence'];
   const aiSeconds = aiCats.reduce((a, c) => a + (cats.get(c) || 0), 0);
@@ -185,6 +204,11 @@ async function main() {
       todaySeconds: Math.round(todaySeconds),
       todayHours: Math.round(todaySeconds / 36) / 100,
       goalSeconds,
+      dailyGoalSeconds,
+      weeklyGoalHours: WEEKLY_GOAL_HOURS,
+      weekSeconds: Math.round(weekSeconds),
+      weekHours: Math.round(weekSeconds / 36) / 100,
+      weekPct: Math.min(100, Math.round((weekSeconds / (goalSeconds || 1)) * 1000) / 10),
       firstHeartbeat: projMeta?.first_heartbeat ?? null,
       lastHeartbeat: projMeta?.last_heartbeat ?? null,
       heartbeatCount: projMeta?.total_heartbeats ?? mineHbs.length,

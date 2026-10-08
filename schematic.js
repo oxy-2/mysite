@@ -1,4 +1,4 @@
-/* schematic viewer — injects the kicad svg straight into the dom and zooms by
+/* schematic viewer · injects the kicad svg straight into the dom and zooms by
    resizing its layout box (transform:scale() makes chrome rasterize the svg at
    the old size and stretch the texture = blurry). layout-size changes force the
    browser to re-render the vectors sharp at every zoom level.
