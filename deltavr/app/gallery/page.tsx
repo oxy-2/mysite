@@ -75,7 +75,7 @@ export default async function GalleryPage() {
         {/* live lapse videos */}
         <div className="section-label" style={{ marginTop: 8 }}>
           <span className="red-dot" />
-          <span>// lapse timelapses · live from oxy / grand / joao</span>
+          <span>// lapse timelapses from oxy(me), grand and joao</span>
         </div>
         <p className="dim" style={{ fontSize: 11, marginBottom: 16, maxWidth: 640 }}>
           pulled straight from{" "}
