@@ -9,7 +9,7 @@ import { getHackatime, type HackatimeData } from "@/lib/hackatime";
 export const metadata = {
   title: "[deltavr.] stats",
   description:
-    "live github + hackatime numbers for deltavr. coding hours, project breakdown, commit heatmap.",
+    "live github and hackatime numbers for deltavr",
 };
 
 export const revalidate = 1800;
