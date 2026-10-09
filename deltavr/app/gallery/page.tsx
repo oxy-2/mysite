@@ -51,7 +51,7 @@ export default async function GalleryPage() {
       <div className="container">
         <div className="section-label">
           <span className="red-dot" />
-          <span>05 // gallery · lapse videos, devlogs, hardware</span>
+          <span>// lapse timelapses from oxy(me), grand and joao</span>
         </div>
 
         {/* team strip */}
