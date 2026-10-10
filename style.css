@@ -569,7 +569,7 @@ body:not(.loading) main {
 /* about section */
 .about-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 32px;
 }
 
@@ -606,28 +606,6 @@ body:not(.loading) main {
   color: var(--text);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
-}
-
-/* terminal card */
-.terminal-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 24px;
-}
-
-.term-header {
-  font-size: 10px;
-  color: var(--text-dim);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
-}
-
-.term-body {
-  font-size: 12px;
-  line-height: 1.8;
-  color: var(--text-muted);
-  min-height: 200px;
 }
 
 /* projects section */

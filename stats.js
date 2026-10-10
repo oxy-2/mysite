@@ -1,8 +1,193 @@
 /* stats tab + the github strip on the overview tab.
-   reads data/deltavr-stats.json (node tools/fetch-stats.mjs) */
+   live: github api + hackatime summary (no keys). json only fills charts the
+   public api omits (editors, categories, rhythm). refresh: node tools/fetch-stats.mjs */
 
 let dataCache = null;
 let chartsDrawn = false;
+
+const HT_USER = 'U0BE41NFVH6';
+const GH_OWNER = 'oxy-2';
+const GH_REPO = 'deltavr';
+const HT_FROM = '2026-06-01';
+const LIVE_TTL = 20 * 60 * 1000;
+const LIVE_KEY = 'oxy-stats-live-v2';
+const PROJ_RE = /delta[\s_-]*vr/i;
+
+const dayStr = d => {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+};
+const mondayOf = ms => {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+};
+
+function matchProjects(list) {
+  return (list || [])
+    .filter(p => PROJ_RE.test(p.key || p.name || ''))
+    .map(p => ({ name: p.key || p.name, seconds: Math.round(p.total ?? p.seconds ?? 0) }))
+    .filter(p => p.seconds > 0)
+    .sort((a, b) => b.seconds - a.seconds);
+}
+
+function scaleList(list, targetSecs) {
+  const src = (list || []).map(i => ({ name: i.name || i.key, seconds: Math.round(i.seconds ?? i.total ?? 0) }));
+  const sum = src.reduce((a, i) => a + i.seconds, 0);
+  if (!sum || !targetSecs) return src;
+  const k = targetSecs / sum;
+  return src.map(i => ({ name: i.name, seconds: Math.round(i.seconds * k) })).sort((a, b) => b.seconds - a.seconds);
+}
+
+async function jget(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return res.json();
+}
+
+function readLiveCache() {
+  try {
+    const hit = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null');
+    if (hit && Date.now() - hit.t < LIVE_TTL && hit.v) return hit.v;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeLiveCache(v) {
+  try { localStorage.setItem(LIVE_KEY, JSON.stringify({ t: Date.now(), v })); } catch { /* ignore */ }
+}
+
+async function fetchGithubLive() {
+  const [repo, commitsRaw] = await Promise.all([
+    jget(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`),
+    jget(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits?per_page=8`)
+  ]);
+  const commits = (Array.isArray(commitsRaw) ? commitsRaw : []).map(c => ({
+    sha: c.sha.slice(0, 7),
+    message: (c.commit?.message || '').split('\n')[0],
+    author: c.commit?.author?.name ?? null,
+    date: c.commit?.author?.date ?? null,
+    url: c.html_url
+  }));
+  return {
+    stars: repo.stargazers_count ?? 0,
+    forks: repo.forks_count ?? 0,
+    openIssues: repo.open_issues_count ?? 0,
+    pushedAt: repo.pushed_at,
+    latestCommit: commits[0] || null,
+    recentCommits: commits,
+    languages: []
+  };
+}
+
+async function fetchSummary(from, to) {
+  return jget(`https://hackatime.hackclub.com/api/summary?user_id=${HT_USER}&from=${from}&to=${to}`);
+}
+
+async function fetchHackatimeLive() {
+  const today = dayStr(Date.now());
+  const nowMs = Date.now();
+  const thisMonday = mondayOf(nowMs);
+
+  const [all, todaySum] = await Promise.all([
+    fetchSummary(HT_FROM, today),
+    fetchSummary(today, today)
+  ]);
+
+  const projects = matchProjects(all.projects);
+  let totalSeconds = projects.reduce((a, p) => a + p.seconds, 0);
+
+  // "delta vr" sometimes lives outside the list but has its own totals
+  if (!projects.some(p => p.name.toLowerCase() === 'delta vr')) {
+    try {
+      const extra = await jget(`https://hackatime.hackclub.com/api/v1/users/oxy/project/${encodeURIComponent('delta vr')}`);
+      if (extra?.total_seconds > 0) {
+        projects.push({ name: 'delta vr', seconds: Math.round(extra.total_seconds) });
+        projects.sort((a, b) => b.seconds - a.seconds);
+        totalSeconds += Math.round(extra.total_seconds);
+      }
+    } catch { /* optional */ }
+  }
+
+  const todayProjects = matchProjects(todaySum.projects);
+  const todaySeconds = todayProjects.reduce((a, p) => a + p.seconds, 0);
+
+  // last 16 mondays → now, live weekly bars
+  const weekly = await Promise.all(Array.from({ length: 16 }, async (_, i) => {
+    const start = new Date(thisMonday.getTime() - (15 - i) * 7 * 86400000);
+    const end = new Date(start.getTime() + 7 * 86400000 - 1);
+    const to = end > nowMs ? today : dayStr(end);
+    try {
+      const sum = await fetchSummary(dayStr(start), to);
+      const pmap = matchProjects(sum.projects);
+      return {
+        week: dayStr(start),
+        projects: pmap.map(p => ({ name: p.name, seconds: p.seconds, hours: Math.round(p.seconds / 36) / 100 }))
+      };
+    } catch {
+      return { week: dayStr(start), projects: [] };
+    }
+  }));
+
+  let weekSeconds = 0;
+  for (const w of weekly) {
+    if (w.week === dayStr(thisMonday)) weekSeconds = w.projects.reduce((a, p) => a + p.seconds, 0);
+  }
+  if (!weekSeconds) {
+    const wk = matchProjects((await fetchSummary(dayStr(thisMonday), today)).projects);
+    weekSeconds = wk.reduce((a, p) => a + p.seconds, 0);
+  }
+
+  const languages = scaleList(all.languages, totalSeconds);
+  const WEEKLY_GOAL_HOURS = 42;
+  const DAILY_GOAL_HOURS = 4;
+
+  return {
+    userId: HT_USER,
+    username: 'oxy',
+    project: 'deltavr*',
+    badgeUrl: `https://hackatime.hackclub.com/api/v1/badge/${HT_USER}/oxy-2/deltavr`,
+    totalSeconds,
+    totalHours: Math.round(totalSeconds / 36) / 100,
+    todaySeconds,
+    todayHours: Math.round(todaySeconds / 36) / 100,
+    goalSeconds: DAILY_GOAL_HOURS * 3600,
+    dailyGoalSeconds: DAILY_GOAL_HOURS * 3600,
+    weeklyGoalHours: WEEKLY_GOAL_HOURS,
+    weekSeconds: Math.round(weekSeconds),
+    weekHours: Math.round(weekSeconds / 36) / 100,
+    weekPct: Math.min(100, Math.round((weekSeconds / (WEEKLY_GOAL_HOURS * 3600)) * 1000) / 10),
+    firstHeartbeat: null,
+    lastHeartbeat: all.to || null,
+    heartbeatCount: null,
+    languages,
+    editors: [],
+    categories: [],
+    projects,
+    aiSeconds: 0,
+    humanSeconds: totalSeconds,
+    daily: [],
+    weekly,
+    weekdayHour: Array.from({ length: 7 }, () => new Float64Array(24)),
+    live: true,
+    generated: new Date().toISOString()
+  };
+}
+
+async function loadLive() {
+  const cached = readLiveCache();
+  if (cached) return cached;
+
+  const [gh, ht] = await Promise.all([
+    fetchGithubLive().catch(() => null),
+    fetchHackatimeLive().catch(() => null)
+  ]);
+  if (!ht) throw new Error('live hackatime failed');
+  const payload = { generated: ht.generated, hackatime: ht, github: gh, live: true };
+  writeLiveCache(payload);
+  return payload;
+}
 
 const $id = id => document.getElementById(id);
 
@@ -104,7 +289,8 @@ function drawGauge() {
   const H = 150;
   const ctx = prepCanvas(canvas, W, H);
 
-  const pct = Math.min(ht.todaySeconds / Math.max(ht.goalSeconds, 1), 1.35) / 1.35;
+  const goal = ht.dailyGoalSeconds || ht.goalSeconds || 4 * 3600;
+  const pct = Math.min(ht.todaySeconds / Math.max(goal, 1), 1.35) / 1.35;
   const cx = W / 2, cy = H - 22, r = Math.min(W / 2 - 16, H - 46);
 
   ctx.lineWidth = 13;
@@ -115,7 +301,7 @@ function drawGauge() {
   ctx.stroke();
 
   if (ht.todaySeconds > 0) {
-    const over = ht.todaySeconds >= ht.goalSeconds;
+    const over = ht.todaySeconds >= goal;
     ctx.strokeStyle = over ? '#ff2e2e' : (isDark() ? '#f5f5fa' : '#111111');
     ctx.beginPath();
     ctx.arc(cx, cy, r, Math.PI, Math.PI + pct * Math.PI);
@@ -128,7 +314,7 @@ function drawGauge() {
   ctx.fillText(fmtHours(ht.todaySeconds), cx, cy - 26);
   ctx.font = '9px "JetBrains Mono", monospace';
   ctx.fillStyle = isDark() ? '#a9a9b8' : '#888888';
-  ctx.fillText(`goal ${fmtHours(ht.goalSeconds)} · ${Math.round((ht.todaySeconds / Math.max(ht.goalSeconds, 1)) * 100)}%`, cx, cy - 8);
+  ctx.fillText(`goal ${fmtHours(goal)} · ${Math.round((ht.todaySeconds / Math.max(goal, 1)) * 100)}%`, cx, cy - 8);
 
   const cap = $id('gauge-caption');
   if (cap) cap.textContent = `last heartbeat ${ht.lastHeartbeat ? new Date(ht.lastHeartbeat).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '·'}`;
@@ -307,10 +493,23 @@ function fillBoxes() {
   set('ov-forks', gh?.forks ?? '·');
   set('ov-hours', `${fmtHours(ht.totalSeconds)}`);
   const commitEl = $id('ov-commit');
-  if (commitEl && gh?.latestCommit) commitEl.textContent = `${gh.latestCommit.sha}`;
+  if (commitEl) {
+    const c = gh?.latestCommit;
+    if (c?.date) {
+      const days = Math.max(0, Math.round((Date.now() - new Date(c.date)) / 86400000));
+      commitEl.textContent = days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+    } else if (c?.sha) {
+      commitEl.textContent = c.sha;
+    }
+  }
 
   const upd = $id('stats-updated');
-  if (upd) upd.textContent = `updated ${new Date(dataCache.generated).toLocaleString()}`;
+  if (upd) {
+    const when = dataCache.generated ? new Date(dataCache.generated).toLocaleString() : '';
+    upd.textContent = dataCache.live
+      ? `live · github + hackatime · cached ${when}`
+      : `updated ${when}`;
+  }
 }
 
 function fillAiBar() {
@@ -369,17 +568,48 @@ function drawAllCharts() {
 
 async function boot() {
   if (dataCache) { fillBoxes(); fillAiBar(); fillCommits(); return; }
+
+  const mergeExtras = live => {
+    // editors / categories / rhythm need heartbeats; public summary omits them
+    if (live.hackatime.editors?.length && live.hackatime.categories?.length) return live;
+    return fetch('data/deltavr-stats.json')
+      .then(r => r.json())
+      .then(json => {
+        const total = live.hackatime.totalSeconds || 1;
+        if (!live.hackatime.editors?.length) live.hackatime.editors = scaleList(json.hackatime?.editors, total);
+        if (!live.hackatime.categories?.length) live.hackatime.categories = scaleList(json.hackatime?.categories, total);
+        if (!live.hackatime.weekdayHour?.some?.(r => Array.from(r).some(v => v > 0)) && json.hackatime?.weekdayHour) {
+          live.hackatime.weekdayHour = json.hackatime.weekdayHour;
+        }
+        if (!live.hackatime.aiSeconds && json.hackatime) {
+          const k = total / Math.max(json.hackatime.totalSeconds || 1, 1);
+          live.hackatime.aiSeconds = Math.round((json.hackatime.aiSeconds || 0) * k);
+          live.hackatime.humanSeconds = Math.max(total - live.hackatime.aiSeconds, 0);
+        }
+        return live;
+      })
+      .catch(() => live);
+  };
+
   try {
-    dataCache = await (await fetch('data/deltavr-stats.json')).json();
-    fillBoxes();
-    fillAiBar();
-    fillCommits();
-    const activePanel = document.querySelector('.panel.active')?.id || '';
-    if (activePanel === 'panel-stats') drawAllCharts();
+    dataCache = await loadLive();
+    dataCache = await mergeExtras(dataCache);
   } catch {
-    const set = (id, v) => { const e = $id(id); if (e) e.textContent = v; };
-    ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '·'));
+    try {
+      dataCache = await (await fetch('data/deltavr-stats.json')).json();
+      dataCache.live = false;
+    } catch {
+      const set = (id, v) => { const e = $id(id); if (e) e.textContent = v; };
+      ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '·'));
+      return;
+    }
   }
+
+  fillBoxes();
+  fillAiBar();
+  fillCommits();
+  const activePanel = document.querySelector('.panel.active')?.id || '';
+  if (activePanel === 'panel-stats') drawAllCharts();
 }
 
 document.addEventListener('panel:shown', e => {

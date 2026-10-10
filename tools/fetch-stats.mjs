@@ -1,6 +1,6 @@
-/* builds data/deltavr-stats.json for the stats tab
+/* builds data/deltavr-stats.json fallback (charts the public api omits)
    node tools/fetch-stats.mjs
-   keys from deltavr/.env.local, they stay local */
+   keys from tools/.env.local, they stay local */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'data', 'deltavr-stats.json');
+const ENV_FILE = join(ROOT, 'tools', '.env.local');
 
 const env = {};
-for (const line of readFileSync(join(ROOT, 'deltavr', '.env.local'), 'utf8').split(/\r?\n/)) {
+for (const line of readFileSync(ENV_FILE, 'utf8').split(/\r?\n/)) {
   const i = line.indexOf('=');
   if (i > 0 && /^[A-Z_]+\s*$/.test(line.slice(0, i))) env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
@@ -19,6 +20,7 @@ const HT_KEY = env.HACKATIME_API_KEY;
 const GH_TOKEN = env.GITHUB_TOKEN;
 const OWNER = 'oxy-2', REPO = 'deltavr';
 const USER_ID = 'U0BE41NFVH6';
+const PROJ_RE = /delta[\s_-]*vr/i;
 const PROJECT_KEYS = [
   'deltavr',
   'delta vr',
@@ -82,18 +84,32 @@ async function main() {
   const rawTotal = durs.reduce((a, d) => a + (d.end - d.start), 0);
 
   console.log('fetching official aggregates...');
-  // authoritative per-project totals (their number counts ~60s per heartbeat)
-  const projMeta = await j('https://hackatime.hackclub.com/api/v1/users/oxy/project/deltavr').catch(() => null);
-  const officialTotal = projMeta?.total_seconds ?? rawTotal;
-
-  // range summary for official language split (editors/categories come back empty server-side)
-  const summary = await j(`https://hackatime.hackclub.com/api/summary?user_id=${USER_ID}&from=2026-06-26&to=${endIso.slice(0, 10)}`, HT_AUTH)
-    .catch(() => null);
-  const officialLangs = {};
-  for (const l of summary?.languages ?? []) officialLangs[l.key] = (officialLangs[l.key] || 0) + l.total;
+  // every project whose name looks like deltavr / delta vr (dashboard filter)
+  const projList = await j('https://hackatime.hackclub.com/api/v1/users/oxy/projects').catch(() => ({ projects: [] }));
+  const names = [...new Set([...(projList.projects || []), ...PROJECT_KEYS])].filter(n => PROJ_RE.test(n));
+  let officialTotal = 0;
+  const officialProjects = [];
+  for (const name of names) {
+    const meta = await j(`https://hackatime.hackclub.com/api/v1/users/oxy/project/${encodeURIComponent(name)}`).catch(() => null);
+    const secs = Math.round(meta?.total_seconds ?? 0);
+    if (secs > 0) officialProjects.push({ name, seconds: secs });
+    officialTotal += secs;
+  }
+  officialProjects.sort((a, b) => b.seconds - a.seconds);
+  if (!officialTotal) officialTotal = rawTotal;
 
   // scale heartbeat distribution up so charts agree with the official total
   const scale = rawTotal > 0 ? officialTotal / rawTotal : 0;
+
+  // languages from the public summary are all-project; scale to deltavr total
+  const summary = await j(`https://hackatime.hackclub.com/api/summary?user_id=${USER_ID}&from=2026-06-26&to=${endIso.slice(0, 10)}`)
+    .catch(() => null);
+  const langMap = new Map();
+  for (const l of summary?.languages ?? []) langMap.set(l.key, (langMap.get(l.key) || 0) + l.total);
+  const langSum = [...langMap.values()].reduce((a, b) => a + b, 0) || 1;
+  const langScale = officialTotal / langSum;
+  const officialLangs = {};
+  for (const [name, secs] of langMap) officialLangs[name] = Math.round(secs * langScale);
 
   const editors = new Map(), cats = new Map(), projs = new Map();
   const daily = new Map();
@@ -145,8 +161,12 @@ async function main() {
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   const weekSeconds = durs.reduce((a, d) => (d.start * 1000 >= monday.getTime() ? a + (d.end - d.start) * scale : a), 0);
 
+  // ai share from heartbeat categories, scaled up to the multi-project official total
   const aiCats = ['ai coding', 'artificial intelligence'];
-  const aiSeconds = aiCats.reduce((a, c) => a + (cats.get(c) || 0), 0);
+  const aiRaw = aiCats.reduce((a, c) => a + (cats.get(c) || 0), 0);
+  const aiShare = rawTotal > 0 ? aiRaw / rawTotal : 0;
+  const aiSeconds = Math.round(officialTotal * aiShare);
+  const humanSeconds = Math.round(officialTotal - aiSeconds);
 
   const weekly = [...weekProj.entries()]
     .sort((a, b) => a[0] < b[0] ? -1 : 1)
@@ -203,21 +223,22 @@ async function main() {
       totalHours: Math.round(officialTotal / 36) / 100,
       todaySeconds: Math.round(todaySeconds),
       todayHours: Math.round(todaySeconds / 36) / 100,
-      goalSeconds,
+      // gauge uses daily goal; week bar uses weeklyGoalHours
+      goalSeconds: dailyGoalSeconds,
       dailyGoalSeconds,
       weeklyGoalHours: WEEKLY_GOAL_HOURS,
       weekSeconds: Math.round(weekSeconds),
       weekHours: Math.round(weekSeconds / 36) / 100,
       weekPct: Math.min(100, Math.round((weekSeconds / (goalSeconds || 1)) * 1000) / 10),
-      firstHeartbeat: projMeta?.first_heartbeat ?? null,
-      lastHeartbeat: projMeta?.last_heartbeat ?? null,
-      heartbeatCount: projMeta?.total_heartbeats ?? mineHbs.length,
+      firstHeartbeat: null,
+      lastHeartbeat: new Date().toISOString(),
+      heartbeatCount: mineHbs.length,
       languages: Object.entries(officialLangs).map(([name, seconds]) => ({ name, seconds })).sort((a, b) => b.seconds - a.seconds),
       editors: fmtMap(editors),
       categories: fmtMap(cats),
-      projects: fmtMap(projs),
+      projects: officialProjects.length ? officialProjects : fmtMap(projs),
       aiSeconds: Math.round(aiSeconds),
-      humanSeconds: Math.round(officialTotal - aiSeconds),
+      humanSeconds: Math.round(humanSeconds),
       daily: [...daily.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([date, s]) => ({ date, hours: Math.round(s / 36) / 100 })),
       weekly,
       weekdayHour: grid.map(row => Array.from(row, v => Math.round(v)))

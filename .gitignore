@@ -1,0 +1,14 @@
+﻿# local secrets
+tools/.env.local
+.env
+.env.local
+
+# ide / os
+.idea/
+workspace.xml
+Thumbs.db
+.DS_Store
+
+# node
+node_modules/
+.next/

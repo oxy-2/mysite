@@ -358,49 +358,6 @@ let toggleSettings = () => { };
   render3D();
 })();
 
-/* interests terminal typa thing */
-(function initTerm() {
-  const body = $('#term-body');
-  if (!body) return;
-
-  const lines = [
-    '❯ cat oxy_profile.json',
-    '{',
-    '  "name": "Hugo (oxy)",',
-    '  "age": 17,',
-    '  "location": "Madeira, Portugal (from South Africa)",',
-    '  "passions": [',
-    '    "military aeronautics & engineering",',
-    '    "space systems and nasa & esa",',
-    '    "low-level computing & fpgas",',
-    '    "pcb design & schematics",',
-    '    "3d printing (ender 3 of eternal doom and despair)",',
-    '    "software engineering (all the languages lol)"',
-    '  ],',
-    '  "flagship": "DeltaVR",',
-    '  "gov_op": "Feb 2027"',
-    '}'
-  ];
-
-  let i = 0;
-  function step() {
-    if (i >= lines.length) return;
-    const div = document.createElement('div');
-    div.textContent = lines[i++];
-    body.appendChild(div);
-    setTimeout(step, 120);
-  }
-
-  const obs = new IntersectionObserver(([e]) => {
-    if (e.isIntersecting) {
-      obs.disconnect();
-      step();
-    }
-  }, { threshold: 0.3 });
-
-  obs.observe(body);
-})();
-
 /* settings drawer, slides in from the right, no clock stuff cuz there is no clock on this site */
 (function initSettings() {
   const toggleBtn = $('#settings-toggle');
