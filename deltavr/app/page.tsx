@@ -17,28 +17,27 @@ export default async function Home() {
           <div>
             <div className="hero-tagline">
               <span className="red-dot" />
-              <span>open source pcvr headset / orbsLAM3 / full asa</span>
+              <span>open source pcvr headset - slam tracking - mostly 3d printed</span>
             </div>
 
             <h1 className="hero-name">[deltavr.]</h1>
 
             <p className="hero-bio">
-              a pseudopancake pcvr headset with orbsLAM3 tracking running on the
-              headset camera, processed by your pc. tmr controllers with hall
-              triggers, everything printed in asa on a lightly-modified ender 3.
-              built for stardance, shipping soon.
+              deltavr is a project by a team of 3 in which we
+              built a slam tracked tiny open source headset with
+              customs pcbs, and with every part except a few all 3d printable
             </p>
 
             <div className="hero-links">
               <Link href="/pcb" className="btn btn-black">
-                view the pcbs →
+                view the pcbs
               </Link>
               <a
                 href={`${BASE_PATH}/downloads/Gerber_PCB.zip`}
                 download
                 className="btn btn-ghost"
               >
-                download gerbers ↓
+                download gerbers
               </a>
               <a
                 href="https://github.com/oxy-2/deltavr"
@@ -46,19 +45,18 @@ export default async function Home() {
                 rel="noopener"
                 className="btn btn-ghost"
               >
-                star on github ★
+                star on github
               </a>
             </div>
 
             <div className="tag-group">
-              <span className="tag">orbsLAM3</span>
+              <span className="tag">orbslam3</span>
               <span className="tag">pseudopancake optics</span>
-              <span className="tag">nrf52840</span>
-              <span className="tag">lsm6dsv</span>
+              <span className="tag">nrf52840 mcus</span>
+              <span className="tag">lsm6dsv imus</span>
               <span className="tag">tmr sticks</span>
               <span className="tag">hall triggers</span>
-              <span className="tag">asa prints</span>
-              <span className="tag">kicad</span>
+              <span className="tag">3d printed</span>
             </div>
           </div>
 
@@ -73,9 +71,9 @@ export default async function Home() {
         <div className="ticker-track">
           {Array.from({ length: 4 }).map((_, i) => (
             <span key={i} className="ticker-chunk">
-              deltavr ▸ orbsLAM3 on-headset-camera tracking ▸ processed by pc ▸
-              pseudopancake optics ▸ tmr sticks + hall triggers ▸ nrf52840 +
-              lsm6dsv ▸ full asa shell ▸ kicad 10 ▸ shipping for stardance ▸&nbsp;
+              deltavr - orbslam3 inside out camera tracking - pseudopancake optics
+              - tmr sticks and hall triggers - nrf52840s and lsm6dsvs -
+              3d printable - kicad - onshape - renode - hackclub -&nbsp;
             </span>
           ))}
         </div>
