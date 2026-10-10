@@ -270,6 +270,12 @@ function prepCanvas(canvas, cssW, cssH) {
   return ctx;
 }
 
+/* shrink chart type on small cards so labels dont collide */
+function chartFont(px) {
+  const narrow = window.innerWidth < 720;
+  return narrow ? Math.max(8, Math.round(px * 0.82)) : px;
+}
+
 function drawDonut(canvasId, legendId, items) {
   const canvas = $id(canvasId);
   const legend = $id(legendId);
@@ -301,10 +307,10 @@ function drawDonut(canvasId, legendId, items) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = isDark() ? '#f5f5fa' : '#111111';
-  ctx.font = '700 20px "Space Grotesk", sans-serif';
+  ctx.font = `700 ${chartFont(18)}px "Space Grotesk", sans-serif`;
   ctx.fillText(fmtHours(total), cx, cy - 8);
-  ctx.font = '10px "JetBrains Mono", monospace';
-  ctx.fillStyle = isDark() ? '#a9a9b8' : '#888888';
+  ctx.font = `${chartFont(10)}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = isDark() ? '#8b8b9a' : '#6a6a6a';
   ctx.fillText('total', cx, cy + 12);
 
   if (legend) {

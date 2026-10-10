@@ -19,8 +19,8 @@
   --border-dark: #111111;
 
   --text: #111111;
-  --text-muted: #555555;
-  --text-dim: #888888;
+  --text-muted: #4a4a4a;
+  --text-dim: #6a6a6a;
 
   --red-accent: #ff2e2e;
   --orange-accent: #ff6a1a;
@@ -42,8 +42,8 @@
   --border: #2a2a32;
   --border-dark: #f0f0f4;
   --text: #f5f5fa;
-  --text-muted: #a9a9b8;
-  --text-dim: #71717f;
+  --text-muted: #b4b4c2;
+  --text-dim: #8b8b9a;
   --nav-bg: rgba(12, 12, 14, 0.92);
 }
 
@@ -226,11 +226,6 @@ body.loading {
   color: var(--text);
   background: var(--bg);
   border-color: var(--border-dark);
-}
-
-.tab-num {
-  color: var(--text-dim);
-  font-size: 10px;
 }
 
 /* small tab strip under the big tabs - jumps inside the long home page,
@@ -1278,6 +1273,150 @@ body:not(.loading) main {
 @media (max-width: 560px) {
   .gallery-grid {
     column-count: 1;
+  }
+}
+
+/* ============ mobile polish + a11y ============ */
+@media (max-width: 720px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-span-4,
+  .dash-span-8,
+  .dash-span-12 {
+    grid-column: span 1;
+  }
+
+  .stat-strip-col .stat-box {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .stat-num {
+    font-size: 22px;
+  }
+
+  .hero-links,
+  .contact-links,
+  .board-toggle {
+    flex-wrap: wrap;
+  }
+
+  .hero-links .btn,
+  .btn-black,
+  .btn-accent {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex: 1 1 140px;
+  }
+
+  .tab-item,
+  .sub-tab {
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .folder-tabs,
+  .subtabs-group {
+    gap: 4px;
+  }
+
+  .section {
+    padding: 28px 0;
+  }
+
+  .container {
+    padding: 0 14px;
+  }
+
+  .hero-name {
+    font-size: 28px;
+  }
+
+  .hero-bio,
+  .card-text,
+  .proj-desc {
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .heatmap-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #chart-weekly,
+  #chart-rhythm {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .modal {
+    max-width: 100vw;
+    width: 100%;
+    border-radius: 0;
+  }
+
+  .drawer {
+    width: min(320px, 100vw);
+    right: min(-320px, -100vw);
+  }
+
+  .drawer.open {
+    right: 0;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dash-card {
+    padding: 14px;
+  }
+
+  .pie-legend,
+  .pie-legend-inline {
+    font-size: 9px;
+    word-break: break-word;
+  }
+
+  .meta-row {
+    font-size: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stat-num {
+    word-break: break-word;
+  }
+}
+
+/* keyboard focus - visible but still on-brand */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--red-accent);
+  outline-offset: 2px;
+}
+
+/* dont punish people who get motion sick */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
