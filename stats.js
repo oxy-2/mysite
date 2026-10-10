@@ -49,7 +49,7 @@ async function jget(url) {
 function readLiveCache() {
   try {
     const hit = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null');
-    if (hit && Date.now() - hit.t < LIVE_TTL && hit.v) return hit.v;
+    if (hit && Date.now() - hit.t < LIVE_TTL && hit.v?.hackatime) return hit.v;
   } catch { /* ignore */ }
   return null;
 }
@@ -85,20 +85,44 @@ async function fetchSummary(from, to) {
   return jget(`https://hackatime.hackclub.com/api/summary?user_id=${HT_USER}&from=${from}&to=${to}`);
 }
 
+async function fetchSummaryRetry(from, to, tries = 3) {
+  let err;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fetchSummary(from, to);
+    } catch (e) {
+      err = e;
+      await new Promise(r => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw err;
+}
+
+function emptyGrid() {
+  return Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+}
+
+function gridHasData(grid) {
+  if (!Array.isArray(grid) || !grid.length) return false;
+  return grid.some(row => {
+    if (!row) return false;
+    if (typeof row.some === 'function') return row.some(v => Number(v) > 0);
+    return Object.values(row).some(v => Number(v) > 0);
+  });
+}
+
 async function fetchHackatimeLive() {
   const today = dayStr(Date.now());
   const nowMs = Date.now();
   const thisMonday = mondayOf(nowMs);
 
-  const [all, todaySum] = await Promise.all([
-    fetchSummary(HT_FROM, today),
-    fetchSummary(today, today)
-  ]);
+  // main range is required. everything else is best-effort so one flake
+  // doesn't take the whole stats tab offline
+  const all = await fetchSummaryRetry(HT_FROM, today);
 
   const projects = matchProjects(all.projects);
   let totalSeconds = projects.reduce((a, p) => a + p.seconds, 0);
 
-  // "delta vr" sometimes lives outside the list but has its own totals
   if (!projects.some(p => p.name.toLowerCase() === 'delta vr')) {
     try {
       const extra = await jget(`https://hackatime.hackclub.com/api/v1/users/oxy/project/${encodeURIComponent('delta vr')}`);
@@ -110,33 +134,39 @@ async function fetchHackatimeLive() {
     } catch { /* optional */ }
   }
 
-  const todayProjects = matchProjects(todaySum.projects);
-  const todaySeconds = todayProjects.reduce((a, p) => a + p.seconds, 0);
+  let todaySeconds = 0;
+  try {
+    const todaySum = await fetchSummary(today, today);
+    todaySeconds = matchProjects(todaySum.projects).reduce((a, p) => a + p.seconds, 0);
+  } catch { /* optional */ }
 
-  // last 16 mondays → now, live weekly bars
-  const weekly = await Promise.all(Array.from({ length: 16 }, async (_, i) => {
-    const start = new Date(thisMonday.getTime() - (15 - i) * 7 * 86400000);
-    const end = new Date(start.getTime() + 7 * 86400000 - 1);
-    const to = end > nowMs ? today : dayStr(end);
-    try {
-      const sum = await fetchSummary(dayStr(start), to);
-      const pmap = matchProjects(sum.projects);
-      return {
-        week: dayStr(start),
-        projects: pmap.map(p => ({ name: p.name, seconds: p.seconds, hours: Math.round(p.seconds / 36) / 100 }))
-      };
-    } catch {
-      return { week: dayStr(start), projects: [] };
-    }
-  }));
+  // weekly bars, 4 at a time so we don't trip rate limits
+  const weekly = [];
+  const weekCount = 16;
+  for (let base = 0; base < weekCount; base += 4) {
+    const batch = await Promise.all(Array.from({ length: Math.min(4, weekCount - base) }, async (_, j) => {
+      const i = base + j;
+      const start = new Date(thisMonday.getTime() - (weekCount - 1 - i) * 7 * 86400000);
+      const end = new Date(start.getTime() + 7 * 86400000 - 1);
+      const to = end > nowMs ? today : dayStr(end);
+      try {
+        const sum = await fetchSummary(dayStr(start), to);
+        const pmap = matchProjects(sum.projects);
+        return {
+          week: dayStr(start),
+          projects: pmap.map(p => ({ name: p.name, seconds: p.seconds, hours: Math.round(p.seconds / 36) / 100 }))
+        };
+      } catch {
+        return { week: dayStr(start), projects: [] };
+      }
+    }));
+    weekly.push(...batch);
+    if (base + 4 < weekCount) await new Promise(r => setTimeout(r, 120));
+  }
 
   let weekSeconds = 0;
   for (const w of weekly) {
     if (w.week === dayStr(thisMonday)) weekSeconds = w.projects.reduce((a, p) => a + p.seconds, 0);
-  }
-  if (!weekSeconds) {
-    const wk = matchProjects((await fetchSummary(dayStr(thisMonday), today)).projects);
-    weekSeconds = wk.reduce((a, p) => a + p.seconds, 0);
   }
 
   const languages = scaleList(all.languages, totalSeconds);
@@ -159,7 +189,7 @@ async function fetchHackatimeLive() {
     weekHours: Math.round(weekSeconds / 36) / 100,
     weekPct: Math.min(100, Math.round((weekSeconds / (WEEKLY_GOAL_HOURS * 3600)) * 1000) / 10),
     firstHeartbeat: null,
-    lastHeartbeat: all.to || null,
+    lastHeartbeat: new Date().toISOString(),
     heartbeatCount: null,
     languages,
     editors: [],
@@ -169,23 +199,31 @@ async function fetchHackatimeLive() {
     humanSeconds: totalSeconds,
     daily: [],
     weekly,
-    weekdayHour: Array.from({ length: 7 }, () => new Float64Array(24)),
+    weekdayHour: emptyGrid(),
     live: true,
     generated: new Date().toISOString()
   };
 }
 
 async function loadLive() {
+  // never cache a payload with empty github, that's what blanked the commits list
   const cached = readLiveCache();
-  if (cached) return cached;
+  if (cached && cached.github?.recentCommits?.length) return cached;
 
   const [gh, ht] = await Promise.all([
     fetchGithubLive().catch(() => null),
     fetchHackatimeLive().catch(() => null)
   ]);
-  if (!ht) throw new Error('live hackatime failed');
-  const payload = { generated: ht.generated, hackatime: ht, github: gh, live: true };
-  writeLiveCache(payload);
+
+  if (!ht && !gh) throw new Error('live load failed');
+
+  const payload = {
+    generated: ht?.generated || new Date().toISOString(),
+    hackatime: ht || null,
+    github: gh,
+    live: true
+  };
+  if (ht && gh?.recentCommits?.length) writeLiveCache(payload);
   return payload;
 }
 
@@ -214,7 +252,7 @@ function topSlices(items, n) {
    the timelapse/website recorders and "other" is just null. real editors only */
 const NOT_EDITORS = new Set(['lapse', 'stardance', 'other']);
 function realEditors() {
-  return dataCache.hackatime.editors.filter(e => !NOT_EDITORS.has(e.name));
+  return (dataCache.hackatime.editors || []).filter(e => !NOT_EDITORS.has(e.name));
 }
 
 /* canvas at css pixel size */
@@ -542,15 +580,29 @@ function fillAiBar() {
 function fillCommits() {
   const gh = dataCache.github;
   const rows = $id('commit-rows');
-  if (!rows || !gh?.recentCommits?.length) return;
+  if (!rows) return;
   rows.innerHTML = '';
-  gh.recentCommits.forEach(c => {
+  const list = gh?.recentCommits || [];
+  if (!list.length) {
+    rows.innerHTML = '<div class="empty-note">couldn\'t load commits right now.</div>';
+    return;
+  }
+  list.forEach(c => {
     const row = document.createElement('div');
     row.className = 'commit-row';
     const when = c.date ? new Date(c.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
-    row.innerHTML =
-      `<a href="${c.url}" target="_blank" rel="noopener"><strong class="commit-sha">${c.sha}</strong> ${c.message}</a>` +
-      `<span style="white-space:nowrap">${when}</span>`;
+    const a = document.createElement('a');
+    if (c.url) { a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; }
+    const strong = document.createElement('strong');
+    strong.className = 'commit-sha';
+    strong.textContent = c.sha;
+    a.appendChild(strong);
+    a.appendChild(document.createTextNode(` ${c.message}`));
+    const span = document.createElement('span');
+    span.style.whiteSpace = 'nowrap';
+    span.textContent = when;
+    row.appendChild(a);
+    row.appendChild(span);
     rows.appendChild(row);
   });
 }
@@ -566,43 +618,65 @@ function drawAllCharts() {
   chartsDrawn = true;
 }
 
+function mergeExtras(live, json) {
+  if (!live?.hackatime) return live;
+  const total = live.hackatime.totalSeconds || json?.hackatime?.totalSeconds || 1;
+
+  if (!live.hackatime.editors?.length && json?.hackatime?.editors) {
+    live.hackatime.editors = scaleList(json.hackatime.editors, total);
+  }
+  if (!live.hackatime.categories?.length && json?.hackatime?.categories) {
+    live.hackatime.categories = scaleList(json.hackatime.categories, total);
+  }
+  if (!gridHasData(live.hackatime.weekdayHour) && json?.hackatime?.weekdayHour) {
+    live.hackatime.weekdayHour = json.hackatime.weekdayHour;
+  }
+  if (!live.hackatime.aiSeconds && json?.hackatime) {
+    const k = total / Math.max(json.hackatime.totalSeconds || 1, 1);
+    live.hackatime.aiSeconds = Math.round((json.hackatime.aiSeconds || 0) * k);
+    live.hackatime.humanSeconds = Math.max(total - live.hackatime.aiSeconds, 0);
+  }
+  return live;
+}
+
 async function boot() {
   if (dataCache) { fillBoxes(); fillAiBar(); fillCommits(); return; }
 
-  const mergeExtras = live => {
-    // editors / categories / rhythm need heartbeats; public summary omits them
-    if (live.hackatime.editors?.length && live.hackatime.categories?.length) return live;
-    return fetch('data/deltavr-stats.json')
-      .then(r => r.json())
-      .then(json => {
-        const total = live.hackatime.totalSeconds || 1;
-        if (!live.hackatime.editors?.length) live.hackatime.editors = scaleList(json.hackatime?.editors, total);
-        if (!live.hackatime.categories?.length) live.hackatime.categories = scaleList(json.hackatime?.categories, total);
-        if (!live.hackatime.weekdayHour?.some?.(r => Array.from(r).some(v => v > 0)) && json.hackatime?.weekdayHour) {
-          live.hackatime.weekdayHour = json.hackatime.weekdayHour;
-        }
-        if (!live.hackatime.aiSeconds && json.hackatime) {
-          const k = total / Math.max(json.hackatime.totalSeconds || 1, 1);
-          live.hackatime.aiSeconds = Math.round((json.hackatime.aiSeconds || 0) * k);
-          live.hackatime.humanSeconds = Math.max(total - live.hackatime.aiSeconds, 0);
-        }
-        return live;
-      })
-      .catch(() => live);
-  };
-
+  let json = null;
   try {
-    dataCache = await loadLive();
-    dataCache = await mergeExtras(dataCache);
+    json = await (await fetch('data/deltavr-stats.json')).json();
+  } catch { /* optional */ }
+
+  let live = null;
+  try {
+    live = await loadLive();
   } catch {
-    try {
-      dataCache = await (await fetch('data/deltavr-stats.json')).json();
-      dataCache.live = false;
-    } catch {
-      const set = (id, v) => { const e = $id(id); if (e) e.textContent = v; };
-      ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '·'));
-      return;
+    live = null;
+  }
+
+  if (live?.hackatime) {
+    dataCache = mergeExtras(live, json);
+    dataCache.live = true;
+  } else if (json) {
+    dataCache = json;
+    dataCache.live = false;
+    // still want live stars / forks / commits even when hackatime flakes
+    if (!dataCache.github?.recentCommits?.length) {
+      const gh = await fetchGithubLive().catch(() => null);
+      if (gh) dataCache.github = { ...(dataCache.github || {}), ...gh };
     }
+    dataCache = mergeExtras(dataCache, json);
+  } else {
+    const set = (id, v) => { const e = $id(id); if (e) e.textContent = v; };
+    ['st-total', 'st-today', 'st-editor', 'st-category'].forEach(k => set(k, '·'));
+    return;
+  }
+
+  // github can still be missing if live hackatime worked but gh was rate limited
+  if (!dataCache.github?.recentCommits?.length) {
+    const gh = await fetchGithubLive().catch(() => null);
+    if (gh) dataCache.github = { ...(dataCache.github || {}), ...gh };
+    if (gh && dataCache.live) writeLiveCache(dataCache);
   }
 
   fillBoxes();
