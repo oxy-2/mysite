@@ -289,7 +289,7 @@ function drawDonut(canvasId, legendId, items) {
   const pal = palette();
   const cx = W / 2, cy = H / 2;
   const r = Math.min(W, H) / 2 - 12;
-  const inner = r * 0.6;
+  const inner = r * 0.68;
 
   let start = -Math.PI / 2;
   items.forEach((item, i) => {
@@ -307,11 +307,14 @@ function drawDonut(canvasId, legendId, items) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = isDark() ? '#f5f5fa' : '#111111';
-  ctx.font = `700 ${chartFont(18)}px "Space Grotesk", sans-serif`;
-  ctx.fillText(fmtHours(total), cx, cy - 8);
-  ctx.font = `${chartFont(10)}px "JetBrains Mono", monospace`;
+  const label = fmtHours(total);
+  // tiny hole on phone cards — keep type well under the inner ring
+  const fontPx = Math.max(9, Math.min(chartFont(16), inner * 0.22));
+  ctx.font = `700 ${fontPx}px "Space Grotesk", sans-serif`;
+  ctx.fillText(label, cx, cy - 4);
+  ctx.font = `${Math.max(7, Math.round(fontPx * 0.5))}px "JetBrains Mono", monospace`;
   ctx.fillStyle = isDark() ? '#8b8b9a' : '#6a6a6a';
-  ctx.fillText('total', cx, cy + 12);
+  ctx.fillText('total', cx, cy + fontPx * 0.7);
 
   if (legend) {
     legend.innerHTML = '';
@@ -431,8 +434,8 @@ function drawWeekly() {
       acc += h;
     });
 
-    if (series.length <= 10 || wi % Math.ceil(series.length / 10) === 0) {
-      ctx.fillStyle = isDark() ? '#71717f' : '#999999';
+    if (series.length <= 8 || wi % Math.max(1, Math.ceil(series.length / (window.innerWidth < 720 ? 5 : 10))) === 0) {
+      ctx.fillStyle = isDark() ? '#8b8b9a' : '#6a6a6a';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(s.week.slice(5).replace('-', '/'), padL + wi * bw + bw / 2, H - 6);
