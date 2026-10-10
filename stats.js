@@ -10,8 +10,9 @@ const GH_OWNER = 'oxy-2';
 const GH_REPO = 'deltavr';
 const HT_FROM = '2026-06-01';
 const LIVE_TTL = 20 * 60 * 1000;
-const LIVE_KEY = 'oxy-stats-live-v2';
-const PROJ_RE = /delta[\s_-]*vr/i;
+const LIVE_KEY = 'oxy-stats-live-v3';
+/* the exact 5 projects checked on hackatime.hackclub.com — nothing else counts */
+const PROJECT_NAMES = ['delta vr', 'deltavr', 'deltavr [github]', 'delta vr pcbs', 'deltavr phase 2'];
 
 const dayStr = d => {
   const x = new Date(d);
@@ -24,11 +25,14 @@ const mondayOf = ms => {
   return d;
 };
 
+function isWatched(name) {
+  return PROJECT_NAMES.includes(String(name || '').trim().toLowerCase());
+}
+
 function matchProjects(list) {
   return (list || [])
-    .filter(p => PROJ_RE.test(p.key || p.name || ''))
     .map(p => ({ name: p.key || p.name, seconds: Math.round(p.total ?? p.seconds ?? 0) }))
-    .filter(p => p.seconds > 0)
+    .filter(p => isWatched(p.name) && p.seconds >= 0)
     .sort((a, b) => b.seconds - a.seconds);
 }
 
@@ -121,18 +125,14 @@ async function fetchHackatimeLive() {
   const all = await fetchSummaryRetry(HT_FROM, today);
 
   const projects = matchProjects(all.projects);
-  let totalSeconds = projects.reduce((a, p) => a + p.seconds, 0);
-
-  if (!projects.some(p => p.name.toLowerCase() === 'delta vr')) {
-    try {
-      const extra = await jget(`https://hackatime.hackclub.com/api/v1/users/oxy/project/${encodeURIComponent('delta vr')}`);
-      if (extra?.total_seconds > 0) {
-        projects.push({ name: 'delta vr', seconds: Math.round(extra.total_seconds) });
-        projects.sort((a, b) => b.seconds - a.seconds);
-        totalSeconds += Math.round(extra.total_seconds);
-      }
-    } catch { /* optional */ }
+  // include the 5 watched names even if a bucket is empty so bars match the dashboard
+  for (const name of ['delta vr', 'deltavr', 'deltavr [GitHub]', 'delta vr pcbs', 'deltavr phase 2']) {
+    if (!projects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      projects.push({ name, seconds: 0 });
+    }
   }
+  projects.sort((a, b) => b.seconds - a.seconds);
+  const totalSeconds = projects.reduce((a, p) => a + p.seconds, 0);
 
   let todaySeconds = 0;
   try {
@@ -235,8 +235,11 @@ const isDark = () => document.documentElement.getAttribute('data-theme') === 'da
 const palette = () => (isDark() ? PALETTE_DARK : PALETTE_LIGHT);
 
 function fmtHours(seconds) {
-  const h = seconds / 3600;
-  return `${h >= 100 ? Math.round(h * 10) / 10 : Math.round(h * 100) / 100}h`;
+  const totalMin = Math.max(0, Math.round((seconds || 0) / 60));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h <= 0) return `${m}m`;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
 /* top slices + everything else lumped into "other" */

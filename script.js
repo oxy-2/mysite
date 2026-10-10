@@ -680,11 +680,11 @@ route();
   }
 
   async function loadLapse() {
-    const box = addSection('// lapse timelapses · live from oxy / grand / joao');
+    const box = addSection('time lapses');
     const note = document.createElement('p');
     note.className = 'dim';
     note.style.cssText = 'font-size:11px;margin:-6px 0 14px;max-width:640px';
-    note.innerHTML = `// lapse timelapses from oxy(me), grand and joao`;
+    note.innerHTML = `time lapses from oxy(me), grand and joao`;
     box.parentElement.insertBefore(note, box);
 
     const videos = [];

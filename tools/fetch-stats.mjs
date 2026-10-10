@@ -20,14 +20,15 @@ const HT_KEY = env.HACKATIME_API_KEY;
 const GH_TOKEN = env.GITHUB_TOKEN;
 const OWNER = 'oxy-2', REPO = 'deltavr';
 const USER_ID = 'U0BE41NFVH6';
-const PROJ_RE = /delta[\s_-]*vr/i;
+/* the exact 5 projects from the hackatime dashboard filter */
 const PROJECT_KEYS = [
-  'deltavr',
   'delta vr',
+  'deltavr',
   'deltavr [GitHub]',
   'delta vr pcbs',
   'deltavr phase 2',
 ];
+const isWatched = n => PROJECT_KEYS.some(k => k.toLowerCase() === String(n || '').trim().toLowerCase());
 
 if (!HT_KEY) { console.error('no HACKATIME_API_KEY in deltavr/.env.local'); process.exit(1); }
 
@@ -75,10 +76,7 @@ async function main() {
   const startIso = '2026-06-01T00:00:00Z';
   const endIso = new Date().toISOString().slice(0, 19) + 'Z';
   const hRes = await j(`https://hackatime.hackclub.com/api/v1/my/heartbeats?start_time=${startIso}&end_time=${endIso}`, HT_AUTH);
-  const mineHbs = (hRes.heartbeats || []).filter(h => {
-  const p = (h.project || '').toLowerCase();
-  return PROJECT_KEYS.some(k => k.toLowerCase() === p) || /delta\s*vr|deltavr/.test(p);
-});
+  const mineHbs = (hRes.heartbeats || []).filter(h => isWatched(h.project));
 
   const durs = buildDurations(mineHbs);
   const rawTotal = durs.reduce((a, d) => a + (d.end - d.start), 0);
@@ -86,7 +84,7 @@ async function main() {
   console.log('fetching official aggregates...');
   // every project whose name looks like deltavr / delta vr (dashboard filter)
   const projList = await j('https://hackatime.hackclub.com/api/v1/users/oxy/projects').catch(() => ({ projects: [] }));
-  const names = [...new Set([...(projList.projects || []), ...PROJECT_KEYS])].filter(n => PROJ_RE.test(n));
+  const names = [...new Set([...(projList.projects || []), ...PROJECT_KEYS])].filter(isWatched);
   let officialTotal = 0;
   const officialProjects = [];
   for (const name of names) {
