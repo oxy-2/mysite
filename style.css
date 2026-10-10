@@ -443,14 +443,14 @@ body:not(.loading) main {
 
 /* single loud accent for the primary release CTA */
 .btn-accent {
-  background: var(--orange-text);
+  background: var(--orange-accent);
   color: #fff;
-  border: 1px solid var(--orange-text);
+  border: 1px solid var(--orange-accent);
 }
 
 .btn-accent:hover {
-  background: #a34400;
-  border-color: #a34400;
+  background: #e05a08;
+  border-color: #e05a08;
 }
 
 .interest-list {
@@ -1470,6 +1470,8 @@ button:focus-visible {
   border: 1px solid var(--border);
   padding: 20px;
   grid-column: span 12;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .dash-span-4 { grid-column: span 4; }
@@ -1570,11 +1572,15 @@ button:focus-visible {
 .commit-row {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  align-items: baseline;
+  gap: 12px;
   font-size: 11px;
   padding: 7px 0;
   border-bottom: 1px dashed var(--border);
   color: var(--text-muted);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .cat-row:last-child,
@@ -1585,18 +1591,32 @@ button:focus-visible {
 .commit-row a {
   color: inherit;
   text-decoration: none;
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 10px;
 }
 
 .commit-row a:hover {
   color: var(--text);
 }
 
+.commit-row span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .commit-sha {
   color: var(--red-text);
   font-weight: 700;
+}
+
+#commit-rows {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .heatmap-wrap {
@@ -1609,13 +1629,15 @@ button:focus-visible {
 @media (max-width: 720px) {
   .dash-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .dash-span-4,
   .dash-span-8,
   .dash-span-12 {
     grid-column: 1 / -1;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .pie-legend-inline {
